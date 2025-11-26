@@ -20,6 +20,52 @@ const CONFIG = {
 };
 
 // ====================================================================
+// IMAGE ASSETS
+// ====================================================================
+
+// Global image storage for mosquito sprites
+const IMAGES = {
+    mosquitoAlive: null,
+    mosquitoGhost: null,
+    loaded: false
+};
+
+// Preload images
+function preloadImages() {
+    return new Promise((resolve) => {
+        let loadedCount = 0;
+        const totalImages = 2;
+
+        const checkComplete = () => {
+            loadedCount++;
+            if (loadedCount === totalImages) {
+                IMAGES.loaded = true;
+                console.log('✅ Custom mosquito images loaded successfully!');
+                resolve(true);
+            }
+        };
+
+        // Load alive mosquito image
+        IMAGES.mosquitoAlive = new Image();
+        IMAGES.mosquitoAlive.onload = checkComplete;
+        IMAGES.mosquitoAlive.onerror = () => {
+            console.warn('⚠️ Failed to load mosquito.png, using fallback rendering');
+            checkComplete();
+        };
+        IMAGES.mosquitoAlive.src = 'assets/mosquito.png';
+
+        // Load ghost mosquito image
+        IMAGES.mosquitoGhost = new Image();
+        IMAGES.mosquitoGhost.onload = checkComplete;
+        IMAGES.mosquitoGhost.onerror = () => {
+            console.warn('⚠️ Failed to load ghostmosquito.png, using fallback rendering');
+            checkComplete();
+        };
+        IMAGES.mosquitoGhost.src = 'assets/ghostmosquito.png';
+    });
+}
+
+// ====================================================================
 // MOSQUITO CLASS
 // ====================================================================
 
@@ -150,82 +196,112 @@ class Mosquito {
     }
 
     drawAlive(ctx) {
-        // Body
-        ctx.fillStyle = '#2c2c2c';
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 8, 15, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Head
-        ctx.fillStyle = '#1a1a1a';
-        ctx.beginPath();
-        ctx.arc(0, -15, 6, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Wings (animated)
-        const wingFlap = Math.sin(this.wingAngle * 20) * 0.3;
-
-        ctx.fillStyle = 'rgba(200, 200, 255, 0.4)';
-        ctx.beginPath();
-        ctx.ellipse(-5, -5, 12, 20, -0.3 + wingFlap, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.ellipse(5, -5, 12, 20, 0.3 - wingFlap, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Legs
-        ctx.strokeStyle = '#1a1a1a';
-        ctx.lineWidth = 1;
-        for (let i = -1; i <= 1; i++) {
+        // Use custom image if loaded, otherwise fall back to programmatic drawing
+        if (IMAGES.mosquitoAlive && IMAGES.mosquitoAlive.complete && IMAGES.mosquitoAlive.naturalWidth > 0) {
+            // Draw custom mosquito image
+            const imageSize = this.size * 2; // Make image larger for visibility
+            ctx.drawImage(
+                IMAGES.mosquitoAlive,
+                -imageSize / 2,
+                -imageSize / 2,
+                imageSize,
+                imageSize
+            );
+        } else {
+            // Fallback: Programmatic drawing
+            // Body
+            ctx.fillStyle = '#2c2c2c';
             ctx.beginPath();
-            ctx.moveTo(i * 5, 5);
-            ctx.lineTo(i * 8, 15);
+            ctx.ellipse(0, 0, 8, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Head
+            ctx.fillStyle = '#1a1a1a';
+            ctx.beginPath();
+            ctx.arc(0, -15, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Wings (animated)
+            const wingFlap = Math.sin(this.wingAngle * 20) * 0.3;
+
+            ctx.fillStyle = 'rgba(200, 200, 255, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(-5, -5, 12, 20, -0.3 + wingFlap, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.ellipse(5, -5, 12, 20, 0.3 - wingFlap, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Legs
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 1;
+            for (let i = -1; i <= 1; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * 5, 5);
+                ctx.lineTo(i * 8, 15);
+                ctx.stroke();
+            }
+
+            // Proboscis (stinger)
+            ctx.strokeStyle = '#8b4513';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -15);
+            ctx.lineTo(0, -25);
             ctx.stroke();
         }
-
-        // Proboscis (stinger)
-        ctx.strokeStyle = '#8b4513';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(0, -15);
-        ctx.lineTo(0, -25);
-        ctx.stroke();
     }
 
     drawGhost(ctx) {
-        // Semi-transparent ghost version
-        ctx.globalAlpha = 0.5;
-
-        // Ghost body (wispy)
-        ctx.fillStyle = '#e0e0ff';
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 12, 18, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Ghost face
-        ctx.fillStyle = '#4a4a6a';
-        ctx.beginPath();
-        ctx.arc(-4, -5, 2, 0, Math.PI * 2); // Left eye
-        ctx.arc(4, -5, 2, 0, Math.PI * 2);  // Right eye
-        ctx.fill();
-
-        // Wispy tail
-        ctx.strokeStyle = '#c0c0ff';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 3; i++) {
-            ctx.beginPath();
-            ctx.moveTo(0, 10);
-            ctx.quadraticCurveTo(
-                (i - 1) * 8,
-                15 + Math.sin(this.floatOffset + i) * 5,
-                (i - 1) * 6,
-                25
+        // Use custom ghost image if loaded, otherwise fall back to programmatic drawing
+        if (IMAGES.mosquitoGhost && IMAGES.mosquitoGhost.complete && IMAGES.mosquitoGhost.naturalWidth > 0) {
+            // Draw custom ghost mosquito image with transparency
+            ctx.globalAlpha = 0.7; // Semi-transparent for ghost effect
+            const imageSize = this.size * 2; // Make image larger for visibility
+            ctx.drawImage(
+                IMAGES.mosquitoGhost,
+                -imageSize / 2,
+                -imageSize / 2,
+                imageSize,
+                imageSize
             );
-            ctx.stroke();
-        }
+            ctx.globalAlpha = 1.0;
+        } else {
+            // Fallback: Programmatic drawing
+            // Semi-transparent ghost version
+            ctx.globalAlpha = 0.5;
 
-        ctx.globalAlpha = 1.0;
+            // Ghost body (wispy)
+            ctx.fillStyle = '#e0e0ff';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 12, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ghost face
+            ctx.fillStyle = '#4a4a6a';
+            ctx.beginPath();
+            ctx.arc(-4, -5, 2, 0, Math.PI * 2); // Left eye
+            ctx.arc(4, -5, 2, 0, Math.PI * 2);  // Right eye
+            ctx.fill();
+
+            // Wispy tail
+            ctx.strokeStyle = '#c0c0ff';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 10);
+                ctx.quadraticCurveTo(
+                    (i - 1) * 8,
+                    15 + Math.sin(this.floatOffset + i) * 5,
+                    (i - 1) * 6,
+                    25
+                );
+                ctx.stroke();
+            }
+
+            ctx.globalAlpha = 1.0;
+        }
     }
 
     // Trigger vibration effect (when hit by sound while alive)
@@ -861,6 +937,10 @@ class GameManager {
 
 let game;
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
+    // Preload custom mosquito images before starting game
+    await preloadImages();
+
+    // Initialize game after images are loaded
     game = new GameManager();
 });
