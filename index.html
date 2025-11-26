@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosquito Hunter - Eye Tracking & Hand Swatting Game</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- MediaPipe Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Header UI -->
+        <div id="header">
+            <h1>🦟 Mosquito Hunter</h1>
+            <div id="score-display">
+                <span>Killed: <span id="kills">0</span></span>
+                <span>Souls Destroyed: <span id="souls">0</span></span>
+            </div>
+        </div>
+
+        <!-- Game Canvas -->
+        <div id="canvas-wrapper">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="game-canvas"></canvas>
+            <canvas id="hand-canvas"></canvas>
+        </div>
+
+        <!-- Control Panel -->
+        <div id="control-panel">
+            <div id="mode-indicator">
+                <p id="mode-text">Click "Start Eye Scan" to begin</p>
+            </div>
+
+            <button id="start-scan-btn" class="btn-primary">Start Eye Scan</button>
+            <button id="restart-btn" class="btn-secondary" style="display:none;">Restart Game</button>
+
+            <div id="instructions">
+                <h3>How to Play:</h3>
+                <ul>
+                    <li>👁️ <strong>Eye Scan:</strong> Move your eyes around the screen to reveal mosquitoes</li>
+                    <li>👏 <strong>Kill Mosquitoes:</strong> Bring both hands together over a mosquito to kill it</li>
+                    <li>🎤 <strong>Destroy Ghosts:</strong> Make a sound (400-1200 Hz) to destroy ghost mosquitoes</li>
+                </ul>
+            </div>
+
+            <div id="audio-indicator">
+                <div class="indicator-label">Microphone:</div>
+                <div id="audio-status" class="status-off">OFF</div>
+                <div class="indicator-label">Frequency:</div>
+                <div id="frequency-display">0 Hz</div>
+            </div>
+        </div>
+
+        <!-- Debug Info -->
+        <div id="debug-info">
+            <div>Game State: <span id="game-state">WAITING</span></div>
+            <div>Hands Detected: <span id="hands-count">0</span></div>
+            <div>Hand Distance: <span id="hand-distance">-</span></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
