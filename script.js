@@ -11,7 +11,7 @@ const CONFIG = {
     MOSQUITO_COUNT: 8,
     KILL_RADIUS: 80,              // Radius around hand to show indicator
     HAND_OVERLAP_THRESHOLD: 150,  // Max distance between hands to consider "overlapping"
-    SOUND_FREQ_MIN: 20000,        // Minimum frequency for destruction (20000 Hz or above - ultrasonic)
+    SOUND_FREQ_MIN: 350,          // Minimum frequency for destruction (350 Hz or above)
     SOUND_FREQ_MAX: 100000,       // Maximum frequency (essentially no upper limit)
     SOUND_THRESHOLD: 50,          // Minimum volume threshold
     EYE_SCAN_DURATION: 3000,      // Eye scan duration in milliseconds
@@ -799,7 +799,7 @@ class GameManager {
     }
 
     checkMosquitoInteractions() {
-        // Only interact with mosquitoes if sound is active (20000 Hz or above - ultrasonic)
+        // Only interact with mosquitoes if sound is active (350 Hz or above)
         if (!this.isSoundActive) return;
 
         // Check if no hands are detected
@@ -822,12 +822,12 @@ class GameManager {
             // If hand is touching and sound is active, destroy mosquito immediately
             if (isTouchedByHand) {
                 if (mosquito.state === 'alive') {
-                    // Alive mosquito + hand touch + sound (≥20000 Hz) = destroy immediately
+                    // Alive mosquito + hand touch + sound (≥350 Hz) = destroy immediately
                     mosquito.destroy();
                     this.kills++;
                     this.updateScore();
                 } else if (mosquito.state === 'ghost') {
-                    // Ghost mosquito + hand touch + sound (≥20000 Hz) = destroy
+                    // Ghost mosquito + hand touch + sound (≥350 Hz) = destroy
                     mosquito.destroy();
                     this.soulsDestroyed++;
                     this.updateScore();
@@ -878,9 +878,14 @@ class GameManager {
 
         // Convert index to frequency
         const nyquist = this.audioContext.sampleRate / 2;
-        const frequency = (maxIndex * nyquist) / this.dataArray.length;
-        this.currentFrequency = frequency;
+        let frequency = (maxIndex * nyquist) / this.dataArray.length;
 
+        // Reset frequency to 0 if volume is too low (no sound detected)
+        if (maxValue <= CONFIG.SOUND_THRESHOLD) {
+            frequency = 0;
+        }
+
+        this.currentFrequency = frequency;
         document.getElementById('frequency-display').textContent = frequency.toFixed(0) + ' Hz';
 
         // Update volume bar
@@ -897,7 +902,7 @@ class GameManager {
             const isLoudEnough = maxValue > CONFIG.SOUND_THRESHOLD;
 
             if (inRange && isLoudEnough) {
-                volumeLabel.textContent = `🎤 ${frequency.toFixed(0)} Hz - ACTIVE! (≥20000 Hz)`;
+                volumeLabel.textContent = `🎤 ${frequency.toFixed(0)} Hz - ACTIVE! (≥350 Hz)`;
                 volumeLabel.style.color = '#4CAF50';
             } else {
                 volumeLabel.textContent = `Sound: ${frequency.toFixed(0)} Hz (${volumePercent.toFixed(0)}%)`;
