@@ -810,6 +810,28 @@ class GameManager {
 
         document.getElementById('frequency-display').textContent = frequency.toFixed(0) + ' Hz';
 
+        // Update volume bar
+        const volumePercent = (maxValue / 255) * 100; // maxValue is 0-255
+        const volumeBar = document.getElementById('volume-bar-fill');
+        const volumeLabel = document.getElementById('volume-label');
+
+        if (volumeBar) {
+            volumeBar.style.width = volumePercent + '%';
+        }
+
+        if (volumeLabel) {
+            const inRange = frequency >= CONFIG.SOUND_FREQ_MIN && frequency <= CONFIG.SOUND_FREQ_MAX;
+            const isLoudEnough = maxValue > CONFIG.SOUND_THRESHOLD;
+
+            if (inRange && isLoudEnough) {
+                volumeLabel.textContent = `🎤 ${frequency.toFixed(0)} Hz - ACTIVE!`;
+                volumeLabel.style.color = '#4CAF50';
+            } else {
+                volumeLabel.textContent = `Sound: ${frequency.toFixed(0)} Hz (${volumePercent.toFixed(0)}%)`;
+                volumeLabel.style.color = 'white';
+            }
+        }
+
         // Check if frequency is in range and volume is sufficient
         if (
             frequency >= CONFIG.SOUND_FREQ_MIN &&
