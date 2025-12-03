@@ -44,6 +44,16 @@ body {
     max-height: 50vh;
     margin-bottom: 50px;
     object-fit: contain;
+    animation: titlePulse 3s ease-in-out infinite;
+}
+
+@keyframes titlePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+    }
 }
 
 #play-icon {
