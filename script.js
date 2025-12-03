@@ -17,6 +17,9 @@ const CONFIG = {
     EYE_SCAN_DURATION: 3000,      // Eye scan duration in milliseconds
     MOSQUITO_SPEED: 1,            // Movement speed
     GHOST_FLOAT_SPEED: 0.5,       // Ghost floating speed
+    ALERT_RADIUS: 150,            // Distance at which mosquito starts escaping from hand
+    ESCAPE_SPEED_MULTIPLIER: 2.5, // Speed multiplier during escape
+    ESCAPE_DURATION: 500,         // Escape burst duration in milliseconds
 };
 
 // ====================================================================
@@ -113,6 +116,15 @@ class Mosquito {
         this.vibrationTimer = 0;
         this.vibrationOffset = { x: 0, y: 0 };
 
+        // Sound-induced shaking
+        this.soundShaking = false;
+        this.soundShakeOffset = { x: 0, y: 0 };
+
+        // Escape behavior
+        this.escapeMode = false;
+        this.escapeDuration = 0;
+        this.escapeDirection = { x: 0, y: 0 };
+
         // Ghost properties
         this.opacity = 1.0;
         this.floatOffset = 0;
@@ -141,6 +153,15 @@ class Mosquito {
             }
         }
 
+        // Handle sound-induced shaking (lighter effect)
+        if (this.soundShaking && this.state === 'alive') {
+            // Create subtle micro-shake effect when sound is detected
+            this.soundShakeOffset.x = (Math.random() - 0.5) * 3;
+            this.soundShakeOffset.y = (Math.random() - 0.5) * 3;
+        } else {
+            this.soundShakeOffset = { x: 0, y: 0 };
+        }
+
         // Update wing animation
         this.wingAngle += deltaTime * 0.02;
 
@@ -152,34 +173,65 @@ class Mosquito {
     }
 
     updateAlive(deltaTime) {
-        // Random zig-zag movement
-        this.directionChangeTimer += deltaTime;
-        if (this.directionChangeTimer > 1000) {
-            this.direction.x = Math.random() * 2 - 1;
-            this.direction.y = Math.random() * 2 - 1;
-            this.directionChangeTimer = 0;
-        }
+        // Handle escape mode
+        if (this.escapeMode) {
+            this.escapeDuration -= deltaTime;
 
-        // Move
-        this.x += this.direction.x * this.speed;
-        this.y += this.direction.y * this.speed;
+            if (this.escapeDuration <= 0) {
+                // Exit escape mode and return to normal movement
+                this.escapeMode = false;
+                this.speed = CONFIG.MOSQUITO_SPEED;
+            } else {
+                // Move in escape direction with increased speed
+                this.x += this.escapeDirection.x * this.speed;
+                this.y += this.escapeDirection.y * this.speed;
+            }
+        } else {
+            // Normal random zig-zag movement
+            this.directionChangeTimer += deltaTime;
+            if (this.directionChangeTimer > 1000) {
+                this.direction.x = Math.random() * 2 - 1;
+                this.direction.y = Math.random() * 2 - 1;
+                this.directionChangeTimer = 0;
+            }
+
+            // Move with normal speed
+            this.x += this.direction.x * this.speed;
+            this.y += this.direction.y * this.speed;
+        }
 
         // Bounce off edges
         if (this.x < this.size) {
             this.x = this.size;
-            this.direction.x *= -1;
+            if (this.escapeMode) {
+                this.escapeDirection.x *= -1;
+            } else {
+                this.direction.x *= -1;
+            }
         }
         if (this.x > this.canvasWidth - this.size) {
             this.x = this.canvasWidth - this.size;
-            this.direction.x *= -1;
+            if (this.escapeMode) {
+                this.escapeDirection.x *= -1;
+            } else {
+                this.direction.x *= -1;
+            }
         }
         if (this.y < this.size) {
             this.y = this.size;
-            this.direction.y *= -1;
+            if (this.escapeMode) {
+                this.escapeDirection.y *= -1;
+            } else {
+                this.direction.y *= -1;
+            }
         }
         if (this.y > this.canvasHeight - this.size) {
             this.y = this.canvasHeight - this.size;
-            this.direction.y *= -1;
+            if (this.escapeMode) {
+                this.escapeDirection.y *= -1;
+            } else {
+                this.direction.y *= -1;
+            }
         }
     }
 
@@ -202,8 +254,8 @@ class Mosquito {
 
         ctx.save();
         ctx.translate(
-            this.x + this.vibrationOffset.x,
-            this.y + this.vibrationOffset.y
+            this.x + this.vibrationOffset.x + this.soundShakeOffset.x,
+            this.y + this.vibrationOffset.y + this.soundShakeOffset.y
         );
 
         if (this.state === 'alive') {
@@ -342,6 +394,31 @@ class Mosquito {
     vibrate() {
         this.vibrating = true;
         this.vibrationTimer = 400; // Vibrate for 400ms (about 2 cycles)
+    }
+
+    // Trigger escape mode when hand approaches
+    startEscape(handX, handY) {
+        if (this.state !== 'alive') return;
+
+        // Calculate direction away from hand
+        const dx = this.x - handX;
+        const dy = this.y - handY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > 0) {
+            // Normalize direction and set escape direction
+            this.escapeDirection.x = (dx / distance);
+            this.escapeDirection.y = (dy / distance);
+        } else {
+            // If on exact same position, escape in random direction
+            this.escapeDirection.x = Math.random() * 2 - 1;
+            this.escapeDirection.y = Math.random() * 2 - 1;
+        }
+
+        // Enter escape mode
+        this.escapeMode = true;
+        this.escapeDuration = CONFIG.ESCAPE_DURATION;
+        this.speed = CONFIG.MOSQUITO_SPEED * CONFIG.ESCAPE_SPEED_MULTIPLIER;
     }
 
     // Convert to ghost
@@ -836,6 +913,49 @@ class GameManager {
         });
     }
 
+    checkHandProximity() {
+        // Check if any hands are detected
+        if (!this.leftHand && !this.rightHand) return;
+
+        this.mosquitoes.forEach(mosquito => {
+            if (mosquito.state !== 'alive') return;
+
+            // Find nearest hand
+            let nearestHandDistance = Infinity;
+            let nearestHandX = 0;
+            let nearestHandY = 0;
+
+            if (this.leftHand) {
+                const distToLeft = this.calculateDistance(
+                    { x: mosquito.x, y: mosquito.y },
+                    this.leftHand
+                );
+                if (distToLeft < nearestHandDistance) {
+                    nearestHandDistance = distToLeft;
+                    nearestHandX = this.leftHand.x;
+                    nearestHandY = this.leftHand.y;
+                }
+            }
+
+            if (this.rightHand) {
+                const distToRight = this.calculateDistance(
+                    { x: mosquito.x, y: mosquito.y },
+                    this.rightHand
+                );
+                if (distToRight < nearestHandDistance) {
+                    nearestHandDistance = distToRight;
+                    nearestHandX = this.rightHand.x;
+                    nearestHandY = this.rightHand.y;
+                }
+            }
+
+            // If hand is within alert radius and mosquito is not already escaping, trigger escape
+            if (nearestHandDistance < CONFIG.ALERT_RADIUS && !mosquito.escapeMode) {
+                mosquito.startEscape(nearestHandX, nearestHandY);
+            }
+        });
+    }
+
     async initAudio() {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -942,6 +1062,16 @@ class GameManager {
     }
 
     update(deltaTime) {
+        // Apply sound-induced shaking to all living mosquitoes
+        this.mosquitoes.forEach(mosquito => {
+            if (mosquito.state === 'alive') {
+                mosquito.soundShaking = this.isSoundActive;
+            }
+        });
+
+        // Check for hand proximity and trigger escape behavior
+        this.checkHandProximity();
+
         // Update all mosquitoes
         this.mosquitoes.forEach(mosquito => mosquito.update(deltaTime));
 
