@@ -482,13 +482,25 @@ class GameManager {
         document.getElementById('start-scan-btn').addEventListener('click', () => this.startEyeScan());
         document.getElementById('restart-btn').addEventListener('click', () => this.restart());
 
+        // Setup play icon click handler
+        const playIcon = document.getElementById('play-icon');
+        const titleScreen = document.getElementById('title-screen');
+
+        if (playIcon && titleScreen) {
+            playIcon.addEventListener('click', async () => {
+                // Hide title screen with fade out
+                titleScreen.classList.add('hidden');
+
+                // Wait for fade out animation, then start game
+                setTimeout(() => {
+                    titleScreen.style.display = 'none';
+                    this.startEyeScan();
+                }, 500);
+            });
+        }
+
         await this.initializeCamera();
         this.updateUI();
-
-        // Auto-start the game after a short delay
-        setTimeout(() => {
-            this.startEyeScan();
-        }, 1000);
     }
 
     resizeCanvas() {

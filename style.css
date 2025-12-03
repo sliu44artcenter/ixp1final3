@@ -16,6 +16,59 @@ body {
     width: 100vw;
 }
 
+/* Title Screen */
+#title-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('assets/hotel.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.5s ease-out;
+}
+
+#title-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#title-image {
+    max-width: 80%;
+    max-height: 50vh;
+    margin-bottom: 50px;
+    object-fit: contain;
+}
+
+#play-icon {
+    max-width: 200px;
+    max-height: 200px;
+    cursor: pointer;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    object-fit: contain;
+    animation: pulse 2s infinite;
+}
+
+#play-icon:hover {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
 #game-container {
     width: 100vw;
     height: 100vh;
