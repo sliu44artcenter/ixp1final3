@@ -9,10 +9,10 @@
 
 const CONFIG = {
     MOSQUITO_COUNT: 8,
-    KILL_RADIUS: 80,              // Radius around mosquito to detect kill
+    KILL_RADIUS: 80,              // Radius around hand to show indicator
     HAND_OVERLAP_THRESHOLD: 150,  // Max distance between hands to consider "overlapping"
-    SOUND_FREQ_MIN: 400,          // Minimum frequency for ghost destruction
-    SOUND_FREQ_MAX: 1200,         // Maximum frequency for ghost destruction
+    SOUND_FREQ_MIN: 300,          // Minimum frequency for destruction (300 Hz or above)
+    SOUND_FREQ_MAX: 20000,        // Maximum frequency (essentially no upper limit)
     SOUND_THRESHOLD: 50,          // Minimum volume threshold
     EYE_SCAN_DURATION: 3000,      // Eye scan duration in milliseconds
     MOSQUITO_SPEED: 1,            // Movement speed
@@ -786,7 +786,7 @@ class GameManager {
     }
 
     checkMosquitoInteractions() {
-        // Only interact with mosquitoes if sound is active
+        // Only interact with mosquitoes if sound is active (300 Hz or above)
         if (!this.isSoundActive) return;
 
         // Check if no hands are detected
@@ -794,25 +794,27 @@ class GameManager {
 
         this.mosquitoes.forEach(mosquito => {
             // Check if either hand is touching this mosquito
+            // Use larger detection radius (mosquito size * 2.5) for easier touch detection
+            const touchRadius = mosquito.size * 2.5;
             let isTouchedByHand = false;
 
-            if (this.leftHand && mosquito.isNear(this.leftHand.x, this.leftHand.y, CONFIG.KILL_RADIUS)) {
+            if (this.leftHand && mosquito.isNear(this.leftHand.x, this.leftHand.y, touchRadius)) {
                 isTouchedByHand = true;
             }
 
-            if (this.rightHand && mosquito.isNear(this.rightHand.x, this.rightHand.y, CONFIG.KILL_RADIUS)) {
+            if (this.rightHand && mosquito.isNear(this.rightHand.x, this.rightHand.y, touchRadius)) {
                 isTouchedByHand = true;
             }
 
-            // If hand is touching and sound is active, apply effect based on mosquito state
+            // If hand is touching and sound is active, destroy mosquito immediately
             if (isTouchedByHand) {
                 if (mosquito.state === 'alive') {
-                    // Alive mosquito + hand touch + sound = become ghost
-                    mosquito.becomeGhost();
+                    // Alive mosquito + hand touch + sound (>=300 Hz) = destroy immediately
+                    mosquito.destroy();
                     this.kills++;
                     this.updateScore();
                 } else if (mosquito.state === 'ghost') {
-                    // Ghost mosquito + hand touch + sound = destroy
+                    // Ghost mosquito + hand touch + sound (>=300 Hz) = destroy
                     mosquito.destroy();
                     this.soulsDestroyed++;
                     this.updateScore();
@@ -882,7 +884,7 @@ class GameManager {
             const isLoudEnough = maxValue > CONFIG.SOUND_THRESHOLD;
 
             if (inRange && isLoudEnough) {
-                volumeLabel.textContent = `🎤 ${frequency.toFixed(0)} Hz - ACTIVE!`;
+                volumeLabel.textContent = `🎤 ${frequency.toFixed(0)} Hz - ACTIVE! (≥300 Hz)`;
                 volumeLabel.style.color = '#4CAF50';
             } else {
                 volumeLabel.textContent = `Sound: ${frequency.toFixed(0)} Hz (${volumePercent.toFixed(0)}%)`;
