@@ -20,6 +20,28 @@
         <img id="play-icon" src="assets/playicon.png" alt="Play">
     </div>
 
+    <!-- Mode Selection Screen -->
+    <div id="mode-selection-screen" style="display: none;">
+        <h1 id="mode-selection-title">SELECT GAME MODE</h1>
+        <div id="mode-buttons">
+            <div class="mode-card" data-mode="combined">
+                <h2>🎯 COMBINED MODE</h2>
+                <p>Use both hand tracking AND sound to destroy mosquitos</p>
+                <span class="difficulty-tag">CHALLENGING</span>
+            </div>
+            <div class="mode-card" data-mode="sound">
+                <h2>🎤 SOUND MODE</h2>
+                <p>Use only sound (350+ Hz) to destroy mosquitos</p>
+                <span class="difficulty-tag">MEDIUM</span>
+            </div>
+            <div class="mode-card" data-mode="hand">
+                <h2>👋 HAND MODE</h2>
+                <p>Use only hand tracking to destroy mosquitos</p>
+                <span class="difficulty-tag">EASY</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Instructions Screen -->
     <div id="instructions-screen" style="display: none;">
         <img id="instructions-image" src="assets/instructions.png" alt="Instructions">
@@ -32,6 +54,9 @@
             <canvas id="game-canvas"></canvas>
             <canvas id="hand-canvas"></canvas>
         </div>
+
+        <!-- Mode Indicator -->
+        <div id="mode-indicator">MODE: COMBINED</div>
 
         <!-- Volume Bar -->
         <div id="volume-bar-container">
