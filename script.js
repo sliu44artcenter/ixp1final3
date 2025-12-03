@@ -461,6 +461,7 @@ class GameManager {
         this.microphone = null;
         this.dataArray = null;
         this.currentFrequency = 0;
+        this.isSoundActive = false; // Track if sound is in active range
 
         // Animation
         this.lastTime = Date.now();
@@ -693,36 +694,46 @@ class GameManager {
                 }
             });
 
-            // Check for hand overlap
-            if (this.leftHand && this.rightHand) {
-                const distance = this.calculateDistance(this.leftHand, this.rightHand);
-                document.getElementById('hand-distance').textContent = distance.toFixed(0) + 'px';
-
-                if (distance < CONFIG.HAND_OVERLAP_THRESHOLD) {
-                    // Calculate overlap point
-                    this.handOverlapPoint = {
-                        x: (this.leftHand.x + this.rightHand.x) / 2,
-                        y: (this.leftHand.y + this.rightHand.y) / 2
-                    };
-
-                    // Draw overlap indicator
-                    this.handCtx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            // Check for hand touching mosquitoes (with sound requirement)
+            // Draw indicators for each hand if sound is active
+            if (this.isSoundActive) {
+                if (this.leftHand) {
+                    // Draw active indicator for left hand
+                    this.handCtx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+                    this.handCtx.strokeStyle = 'rgba(0, 255, 0, 0.8)';
+                    this.handCtx.lineWidth = 3;
                     this.handCtx.beginPath();
                     this.handCtx.arc(
-                        this.handOverlapPoint.x,
-                        this.handOverlapPoint.y,
+                        this.leftHand.x,
+                        this.leftHand.y,
                         CONFIG.KILL_RADIUS,
                         0,
                         Math.PI * 2
                     );
                     this.handCtx.fill();
-
-                    // Check for mosquito kills
-                    this.checkMosquitoKills();
+                    this.handCtx.stroke();
                 }
-            } else {
-                document.getElementById('hand-distance').textContent = '-';
+
+                if (this.rightHand) {
+                    // Draw active indicator for right hand
+                    this.handCtx.fillStyle = 'rgba(0, 100, 255, 0.3)';
+                    this.handCtx.strokeStyle = 'rgba(0, 100, 255, 0.8)';
+                    this.handCtx.lineWidth = 3;
+                    this.handCtx.beginPath();
+                    this.handCtx.arc(
+                        this.rightHand.x,
+                        this.rightHand.y,
+                        CONFIG.KILL_RADIUS,
+                        0,
+                        Math.PI * 2
+                    );
+                    this.handCtx.fill();
+                    this.handCtx.stroke();
+                }
             }
+
+            // Check for mosquito interactions with hands + sound
+            this.checkMosquitoInteractions();
         } else {
             document.getElementById('hands-count').textContent = '0';
         }
@@ -774,18 +785,36 @@ class GameManager {
         return Math.sqrt(dx * dx + dy * dy);
     }
 
-    checkMosquitoKills() {
-        if (!this.handOverlapPoint) return;
+    checkMosquitoInteractions() {
+        // Only interact with mosquitoes if sound is active
+        if (!this.isSoundActive) return;
+
+        // Check if no hands are detected
+        if (!this.leftHand && !this.rightHand) return;
 
         this.mosquitoes.forEach(mosquito => {
-            if (mosquito.state === 'alive') {
-                if (mosquito.isNear(
-                    this.handOverlapPoint.x,
-                    this.handOverlapPoint.y,
-                    CONFIG.KILL_RADIUS
-                )) {
+            // Check if either hand is touching this mosquito
+            let isTouchedByHand = false;
+
+            if (this.leftHand && mosquito.isNear(this.leftHand.x, this.leftHand.y, CONFIG.KILL_RADIUS)) {
+                isTouchedByHand = true;
+            }
+
+            if (this.rightHand && mosquito.isNear(this.rightHand.x, this.rightHand.y, CONFIG.KILL_RADIUS)) {
+                isTouchedByHand = true;
+            }
+
+            // If hand is touching and sound is active, apply effect based on mosquito state
+            if (isTouchedByHand) {
+                if (mosquito.state === 'alive') {
+                    // Alive mosquito + hand touch + sound = become ghost
                     mosquito.becomeGhost();
                     this.kills++;
+                    this.updateScore();
+                } else if (mosquito.state === 'ghost') {
+                    // Ghost mosquito + hand touch + sound = destroy
+                    mosquito.destroy();
+                    this.soulsDestroyed++;
                     this.updateScore();
                 }
             }
@@ -861,32 +890,18 @@ class GameManager {
             }
         }
 
-        // Check if frequency is in range and volume is sufficient
+        // Update sound active state based on frequency and volume
         if (
             frequency >= CONFIG.SOUND_FREQ_MIN &&
             frequency <= CONFIG.SOUND_FREQ_MAX &&
             maxValue > CONFIG.SOUND_THRESHOLD
         ) {
-            this.handleSoundInteraction(frequency, maxValue);
+            this.isSoundActive = true;
+        } else {
+            this.isSoundActive = false;
         }
 
         requestAnimationFrame(() => this.detectFrequency());
-    }
-
-    handleSoundInteraction(frequency, volume) {
-        this.mosquitoes.forEach(mosquito => {
-            if (mosquito.state === 'alive') {
-                // Sound makes alive mosquitoes vibrate
-                if (!mosquito.vibrating) {
-                    mosquito.vibrate();
-                }
-            } else if (mosquito.state === 'ghost') {
-                // Sound destroys ghosts
-                mosquito.destroy();
-                this.soulsDestroyed++;
-                this.updateScore();
-            }
-        });
     }
 
     startGameLoop() {
