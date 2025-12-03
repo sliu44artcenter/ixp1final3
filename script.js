@@ -15,11 +15,11 @@ const CONFIG = {
     SOUND_FREQ_MAX: 100000,       // Maximum frequency (essentially no upper limit)
     SOUND_THRESHOLD: 50,          // Minimum volume threshold
     EYE_SCAN_DURATION: 3000,      // Eye scan duration in milliseconds
-    MOSQUITO_SPEED: 1,            // Movement speed
+    MOSQUITO_SPEED: 2,            // Movement speed (increased for more noticeable movement)
     GHOST_FLOAT_SPEED: 0.5,       // Ghost floating speed
-    ALERT_RADIUS: 150,            // Distance at which mosquito starts escaping from hand
-    ESCAPE_SPEED_MULTIPLIER: 2.5, // Speed multiplier during escape
-    ESCAPE_DURATION: 500,         // Escape burst duration in milliseconds
+    ALERT_RADIUS: 200,            // Distance at which mosquito starts escaping from hand (increased)
+    ESCAPE_SPEED_MULTIPLIER: 4,   // Speed multiplier during escape (increased for more obvious escape)
+    ESCAPE_DURATION: 800,         // Escape burst duration in milliseconds (increased)
 };
 
 // ====================================================================
@@ -250,6 +250,17 @@ class Mosquito {
         if (this.state === 'destroyed') {
             this.drawParticles(ctx);
             return;
+        }
+
+        // Draw escape mode indicator (red circle)
+        if (this.escapeMode && this.state === 'alive') {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * 1.5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
         }
 
         ctx.save();
@@ -784,6 +795,41 @@ class GameManager {
                 }
             });
 
+            // Draw alert radius around hands (for escape behavior visualization)
+            if (this.leftHand) {
+                // Draw alert radius (escape zone)
+                this.handCtx.strokeStyle = 'rgba(255, 165, 0, 0.3)';
+                this.handCtx.lineWidth = 2;
+                this.handCtx.setLineDash([5, 5]);
+                this.handCtx.beginPath();
+                this.handCtx.arc(
+                    this.leftHand.x,
+                    this.leftHand.y,
+                    CONFIG.ALERT_RADIUS,
+                    0,
+                    Math.PI * 2
+                );
+                this.handCtx.stroke();
+                this.handCtx.setLineDash([]);
+            }
+
+            if (this.rightHand) {
+                // Draw alert radius (escape zone)
+                this.handCtx.strokeStyle = 'rgba(255, 165, 0, 0.3)';
+                this.handCtx.lineWidth = 2;
+                this.handCtx.setLineDash([5, 5]);
+                this.handCtx.beginPath();
+                this.handCtx.arc(
+                    this.rightHand.x,
+                    this.rightHand.y,
+                    CONFIG.ALERT_RADIUS,
+                    0,
+                    Math.PI * 2
+                );
+                this.handCtx.stroke();
+                this.handCtx.setLineDash([]);
+            }
+
             // Check for hand touching mosquitoes (with sound requirement)
             // Draw indicators for each hand if sound is active
             if (this.isSoundActive) {
@@ -949,9 +995,13 @@ class GameManager {
                 }
             }
 
-            // If hand is within alert radius and mosquito is not already escaping, trigger escape
-            if (nearestHandDistance < CONFIG.ALERT_RADIUS && !mosquito.escapeMode) {
-                mosquito.startEscape(nearestHandX, nearestHandY);
+            // If hand is within alert radius, trigger escape (allow retriggering every 100ms)
+            if (nearestHandDistance < CONFIG.ALERT_RADIUS) {
+                // Always update escape direction if hand is nearby
+                // This allows continuous fleeing from approaching hands
+                if (!mosquito.escapeMode || mosquito.escapeDuration < 100) {
+                    mosquito.startEscape(nearestHandX, nearestHandY);
+                }
             }
         });
     }
