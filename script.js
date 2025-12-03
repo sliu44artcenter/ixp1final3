@@ -486,15 +486,28 @@ class GameManager {
         // Setup play icon click handler
         const playIcon = document.getElementById('play-icon');
         const titleScreen = document.getElementById('title-screen');
+        const instructionsScreen = document.getElementById('instructions-screen');
 
-        if (playIcon && titleScreen) {
+        if (playIcon && titleScreen && instructionsScreen) {
             playIcon.addEventListener('click', async () => {
                 // Hide title screen with fade out
                 titleScreen.classList.add('hidden');
 
-                // Wait for fade out animation, then start game
+                // Wait for fade out animation, then show instructions
                 setTimeout(() => {
                     titleScreen.style.display = 'none';
+                    instructionsScreen.style.display = 'flex';
+                }, 500);
+            });
+
+            // Setup instructions screen click handler
+            instructionsScreen.addEventListener('click', () => {
+                // Hide instructions screen with fade out
+                instructionsScreen.classList.add('hidden');
+
+                // Wait for fade out animation, then start game
+                setTimeout(() => {
+                    instructionsScreen.style.display = 'none';
                     this.startEyeScan();
                 }, 500);
             });
