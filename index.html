@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mosquito Hunter - Eye Tracking & Hand Swatting Game</title>
+    <title>Mosquito Hunter</title>
     <link rel="stylesheet" href="style.css">
 
     <!-- MediaPipe Dependencies -->
@@ -15,54 +15,23 @@
 </head>
 <body>
     <div id="game-container">
-        <!-- Header UI -->
-        <div id="header">
-            <h1>🦟 Mosquito Hunter</h1>
-            <div id="score-display">
-                <span>Killed: <span id="kills">0</span></span>
-                <span>Souls Destroyed: <span id="souls">0</span></span>
-            </div>
-        </div>
-
-        <!-- Game Canvas -->
         <div id="canvas-wrapper">
             <video id="video" autoplay playsinline></video>
             <canvas id="game-canvas"></canvas>
             <canvas id="hand-canvas"></canvas>
         </div>
 
-        <!-- Control Panel -->
-        <div id="control-panel">
-            <div id="mode-indicator">
-                <p id="mode-text">Click "Start Eye Scan" to begin</p>
-            </div>
-
-            <button id="start-scan-btn" class="btn-primary">Start Eye Scan</button>
-            <button id="restart-btn" class="btn-secondary" style="display:none;">Restart Game</button>
-
-            <div id="instructions">
-                <h3>How to Play:</h3>
-                <ul>
-                    <li>👁️ <strong>Eye Scan:</strong> Move your eyes around the screen to reveal mosquitoes</li>
-                    <li>👏 <strong>Kill Mosquitoes:</strong> Bring both hands together over a mosquito to kill it</li>
-                    <li>🎤 <strong>Destroy Ghosts:</strong> Make a sound (400-1200 Hz) to destroy ghost mosquitoes</li>
-                </ul>
-            </div>
-
-            <div id="audio-indicator">
-                <div class="indicator-label">Microphone:</div>
-                <div id="audio-status" class="status-off">OFF</div>
-                <div class="indicator-label">Frequency:</div>
-                <div id="frequency-display">0 Hz</div>
-            </div>
-        </div>
-
-        <!-- Debug Info -->
-        <div id="debug-info">
-            <div>Game State: <span id="game-state">WAITING</span></div>
-            <div>Hands Detected: <span id="hands-count">0</span></div>
-            <div>Hand Distance: <span id="hand-distance">-</span></div>
-        </div>
+        <!-- Hidden elements for game functionality -->
+        <button id="start-scan-btn" style="display:none;">Start</button>
+        <button id="restart-btn" style="display:none;">Restart</button>
+        <div id="mode-text" style="display:none;"></div>
+        <div id="kills" style="display:none;">0</div>
+        <div id="souls" style="display:none;">0</div>
+        <div id="audio-status" style="display:none;">OFF</div>
+        <div id="frequency-display" style="display:none;">0</div>
+        <div id="game-state" style="display:none;">WAITING</div>
+        <div id="hands-count" style="display:none;">0</div>
+        <div id="hand-distance" style="display:none;">-</div>
     </div>
 
     <script src="script.js"></script>

@@ -25,7 +25,8 @@ const CONFIG = {
 
 // Global image storage for mosquito sprites
 const IMAGES = {
-    mosquitoAlive: null,
+    mosquito1: null,
+    mosquito2: null,
     mosquitoGhost: null,
     loaded: false
 };
@@ -34,7 +35,7 @@ const IMAGES = {
 function preloadImages() {
     return new Promise((resolve) => {
         let loadedCount = 0;
-        const totalImages = 2;
+        const totalImages = 3;
 
         const checkComplete = () => {
             loadedCount++;
@@ -45,14 +46,23 @@ function preloadImages() {
             }
         };
 
-        // Load alive mosquito image
-        IMAGES.mosquitoAlive = new Image();
-        IMAGES.mosquitoAlive.onload = checkComplete;
-        IMAGES.mosquitoAlive.onerror = () => {
-            console.warn('⚠️ Failed to load mosquito.png, using fallback rendering');
+        // Load mosquito animation frame 1
+        IMAGES.mosquito1 = new Image();
+        IMAGES.mosquito1.onload = checkComplete;
+        IMAGES.mosquito1.onerror = () => {
+            console.warn('⚠️ Failed to load mosquito1.png, using fallback rendering');
             checkComplete();
         };
-        IMAGES.mosquitoAlive.src = 'assets/mosquito.png';
+        IMAGES.mosquito1.src = 'assets/mosquito1.png';
+
+        // Load mosquito animation frame 2
+        IMAGES.mosquito2 = new Image();
+        IMAGES.mosquito2.onload = checkComplete;
+        IMAGES.mosquito2.onerror = () => {
+            console.warn('⚠️ Failed to load mosquito2.png, using fallback rendering');
+            checkComplete();
+        };
+        IMAGES.mosquito2.src = 'assets/mosquito2.png';
 
         // Load ghost mosquito image
         IMAGES.mosquitoGhost = new Image();
@@ -196,12 +206,19 @@ class Mosquito {
     }
 
     drawAlive(ctx) {
-        // Use custom image if loaded, otherwise fall back to programmatic drawing
-        if (IMAGES.mosquitoAlive && IMAGES.mosquitoAlive.complete && IMAGES.mosquitoAlive.naturalWidth > 0) {
-            // Draw custom mosquito image
+        // Use custom images with animation if loaded, otherwise fall back to programmatic drawing
+        if (IMAGES.mosquito1 && IMAGES.mosquito1.complete && IMAGES.mosquito1.naturalWidth > 0 &&
+            IMAGES.mosquito2 && IMAGES.mosquito2.complete && IMAGES.mosquito2.naturalWidth > 0) {
+
+            // Alternate between mosquito1 and mosquito2 for animation effect
+            // Use wingAngle to determine which frame to show
+            const useFrame1 = Math.sin(this.wingAngle * 10) > 0;
+            const currentImage = useFrame1 ? IMAGES.mosquito1 : IMAGES.mosquito2;
+
+            // Draw animated mosquito image
             const imageSize = this.size * 2; // Make image larger for visibility
             ctx.drawImage(
-                IMAGES.mosquitoAlive,
+                currentImage,
                 -imageSize / 2,
                 -imageSize / 2,
                 imageSize,
@@ -444,12 +461,17 @@ class GameManager {
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
 
-        // Setup UI event listeners
+        // Setup UI event listeners (hidden but functional)
         document.getElementById('start-scan-btn').addEventListener('click', () => this.startEyeScan());
         document.getElementById('restart-btn').addEventListener('click', () => this.restart());
 
         await this.initializeCamera();
         this.updateUI();
+
+        // Auto-start the game after a short delay
+        setTimeout(() => {
+            this.startEyeScan();
+        }, 1000);
     }
 
     resizeCanvas() {
