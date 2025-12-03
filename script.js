@@ -27,7 +27,8 @@ const CONFIG = {
 const IMAGES = {
     mosquito1: null,
     mosquito2: null,
-    mosquitoGhost: null,
+    ghostMosquito1: null,
+    ghostMosquito2: null,
     loaded: false
 };
 
@@ -35,7 +36,7 @@ const IMAGES = {
 function preloadImages() {
     return new Promise((resolve) => {
         let loadedCount = 0;
-        const totalImages = 3;
+        const totalImages = 4;
 
         const checkComplete = () => {
             loadedCount++;
@@ -64,14 +65,23 @@ function preloadImages() {
         };
         IMAGES.mosquito2.src = 'assets/mosquito2.png';
 
-        // Load ghost mosquito image
-        IMAGES.mosquitoGhost = new Image();
-        IMAGES.mosquitoGhost.onload = checkComplete;
-        IMAGES.mosquitoGhost.onerror = () => {
-            console.warn('⚠️ Failed to load ghostmosquito.png, using fallback rendering');
+        // Load ghost mosquito animation frame 1
+        IMAGES.ghostMosquito1 = new Image();
+        IMAGES.ghostMosquito1.onload = checkComplete;
+        IMAGES.ghostMosquito1.onerror = () => {
+            console.warn('⚠️ Failed to load ghostmosquito1.png, using fallback rendering');
             checkComplete();
         };
-        IMAGES.mosquitoGhost.src = 'assets/ghostmosquito.png';
+        IMAGES.ghostMosquito1.src = 'assets/ghostmosquito1.png';
+
+        // Load ghost mosquito animation frame 2
+        IMAGES.ghostMosquito2 = new Image();
+        IMAGES.ghostMosquito2.onload = checkComplete;
+        IMAGES.ghostMosquito2.onerror = () => {
+            console.warn('⚠️ Failed to load ghostmosquito2.png, using fallback rendering');
+            checkComplete();
+        };
+        IMAGES.ghostMosquito2.src = 'assets/ghostmosquito2.png';
     });
 }
 
@@ -271,13 +281,20 @@ class Mosquito {
     }
 
     drawGhost(ctx) {
-        // Use custom ghost image if loaded, otherwise fall back to programmatic drawing
-        if (IMAGES.mosquitoGhost && IMAGES.mosquitoGhost.complete && IMAGES.mosquitoGhost.naturalWidth > 0) {
+        // Use custom ghost images with animation if loaded, otherwise fall back to programmatic drawing
+        if (IMAGES.ghostMosquito1 && IMAGES.ghostMosquito1.complete && IMAGES.ghostMosquito1.naturalWidth > 0 &&
+            IMAGES.ghostMosquito2 && IMAGES.ghostMosquito2.complete && IMAGES.ghostMosquito2.naturalWidth > 0) {
+
+            // Alternate between ghostmosquito1 and ghostmosquito2 for animation effect
+            // Use floatOffset to determine which frame to show (slower animation for ghost)
+            const useFrame1 = Math.sin(this.floatOffset * 3) > 0;
+            const currentImage = useFrame1 ? IMAGES.ghostMosquito1 : IMAGES.ghostMosquito2;
+
             // Draw custom ghost mosquito image with transparency
             ctx.globalAlpha = 0.7; // Semi-transparent for ghost effect
             const imageSize = this.size * 2; // Make image larger for visibility
             ctx.drawImage(
-                IMAGES.mosquitoGhost,
+                currentImage,
                 -imageSize / 2,
                 -imageSize / 2,
                 imageSize,
