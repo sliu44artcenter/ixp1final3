@@ -529,7 +529,6 @@ class GameManager {
 
         // Game state
         this.state = 'WAITING'; // WAITING, SCANNING, PLAYING
-        this.gameMode = 'combined'; // 'combined', 'sound', 'hand'
         this.mosquitoes = [];
         this.kills = 0;
         this.soulsDestroyed = 0;
@@ -551,7 +550,6 @@ class GameManager {
         this.dataArray = null;
         this.currentFrequency = 0;
         this.isSoundActive = false; // Track if sound is in active range
-        this.soundDestroyTimer = 0; // Cooldown timer for sound-only mode
 
         // Animation
         this.lastTime = Date.now();
@@ -576,50 +574,18 @@ class GameManager {
         // Setup play icon click handler
         const playIcon = document.getElementById('play-icon');
         const titleScreen = document.getElementById('title-screen');
-        const modeSelectionScreen = document.getElementById('mode-selection-screen');
         const instructionsScreen = document.getElementById('instructions-screen');
 
-        if (playIcon && titleScreen && modeSelectionScreen && instructionsScreen) {
-            // Title screen -> Mode selection
+        if (playIcon && titleScreen && instructionsScreen) {
             playIcon.addEventListener('click', async () => {
                 // Hide title screen with fade out
                 titleScreen.classList.add('hidden');
 
-                // Wait for fade out animation, then show mode selection
+                // Wait for fade out animation, then show instructions
                 setTimeout(() => {
                     titleScreen.style.display = 'none';
-                    modeSelectionScreen.style.display = 'flex';
+                    instructionsScreen.style.display = 'flex';
                 }, 500);
-            });
-
-            // Mode selection handlers
-            const modeCards = document.querySelectorAll('.mode-card');
-            modeCards.forEach(card => {
-                card.addEventListener('click', () => {
-                    const selectedMode = card.getAttribute('data-mode');
-                    this.gameMode = selectedMode;
-
-                    // Update mode indicator
-                    const modeIndicator = document.getElementById('mode-indicator');
-                    if (modeIndicator) {
-                        if (selectedMode === 'combined') {
-                            modeIndicator.textContent = 'MODE: 🎯 COMBINED';
-                        } else if (selectedMode === 'sound') {
-                            modeIndicator.textContent = 'MODE: 🎤 SOUND';
-                        } else if (selectedMode === 'hand') {
-                            modeIndicator.textContent = 'MODE: 👋 HAND';
-                        }
-                    }
-
-                    // Hide mode selection screen with fade out
-                    modeSelectionScreen.classList.add('hidden');
-
-                    // Wait for fade out animation, then show instructions
-                    setTimeout(() => {
-                        modeSelectionScreen.style.display = 'none';
-                        instructionsScreen.style.display = 'flex';
-                    }, 500);
-                });
             });
 
             // Setup instructions screen click handler
@@ -956,78 +922,39 @@ class GameManager {
     }
 
     checkMosquitoInteractions() {
-        // Different behavior based on game mode
-        if (this.gameMode === 'combined') {
-            // COMBINED MODE: Requires both hand AND sound
-            if (!this.isSoundActive) return;
-            if (!this.leftHand && !this.rightHand) return;
+        // Requires both hand AND sound (350 Hz or above)
+        if (!this.isSoundActive) return;
+        if (!this.leftHand && !this.rightHand) return;
 
-            this.mosquitoes.forEach(mosquito => {
-                const touchRadius = mosquito.size * 2.5;
-                let isTouchedByHand = false;
+        this.mosquitoes.forEach(mosquito => {
+            // Check if either hand is touching this mosquito
+            // Use larger detection radius (mosquito size * 2.5) for easier touch detection
+            const touchRadius = mosquito.size * 2.5;
+            let isTouchedByHand = false;
 
-                if (this.leftHand && mosquito.isNear(this.leftHand.x, this.leftHand.y, touchRadius)) {
-                    isTouchedByHand = true;
-                }
-
-                if (this.rightHand && mosquito.isNear(this.rightHand.x, this.rightHand.y, touchRadius)) {
-                    isTouchedByHand = true;
-                }
-
-                if (isTouchedByHand) {
-                    if (mosquito.state === 'alive' || mosquito.state === 'ghost') {
-                        mosquito.destroy();
-                        if (mosquito.state === 'alive') this.kills++;
-                        else this.soulsDestroyed++;
-                        this.updateScore();
-                    }
-                }
-            });
-
-        } else if (this.gameMode === 'sound') {
-            // SOUND MODE: Only sound required (no hand needed)
-            // Destroy one mosquito at a time with cooldown to prevent instant win
-            if (!this.isSoundActive) return;
-            if (this.soundDestroyTimer > 0) return;
-
-            // Find first alive or ghost mosquito and destroy it
-            for (let mosquito of this.mosquitoes) {
-                if (mosquito.state === 'alive' || mosquito.state === 'ghost') {
-                    mosquito.destroy();
-                    if (mosquito.state === 'alive') this.kills++;
-                    else this.soulsDestroyed++;
-                    this.updateScore();
-                    this.soundDestroyTimer = 300; // 300ms cooldown between destroys
-                    break; // Only destroy one at a time
-                }
+            if (this.leftHand && mosquito.isNear(this.leftHand.x, this.leftHand.y, touchRadius)) {
+                isTouchedByHand = true;
             }
 
-        } else if (this.gameMode === 'hand') {
-            // HAND MODE: Only hand required (no sound needed)
-            if (!this.leftHand && !this.rightHand) return;
+            if (this.rightHand && mosquito.isNear(this.rightHand.x, this.rightHand.y, touchRadius)) {
+                isTouchedByHand = true;
+            }
 
-            this.mosquitoes.forEach(mosquito => {
-                const touchRadius = mosquito.size * 2.5;
-                let isTouchedByHand = false;
-
-                if (this.leftHand && mosquito.isNear(this.leftHand.x, this.leftHand.y, touchRadius)) {
-                    isTouchedByHand = true;
+            // If hand is touching and sound is active, destroy mosquito immediately
+            if (isTouchedByHand) {
+                if (mosquito.state === 'alive') {
+                    // Alive mosquito + hand touch + sound (≥350 Hz) = destroy immediately
+                    mosquito.destroy();
+                    this.kills++;
+                    this.updateScore();
+                } else if (mosquito.state === 'ghost') {
+                    // Ghost mosquito + hand touch + sound (≥350 Hz) = destroy
+                    mosquito.destroy();
+                    this.soulsDestroyed++;
+                    this.updateScore();
                 }
-
-                if (this.rightHand && mosquito.isNear(this.rightHand.x, this.rightHand.y, touchRadius)) {
-                    isTouchedByHand = true;
-                }
-
-                if (isTouchedByHand) {
-                    if (mosquito.state === 'alive' || mosquito.state === 'ghost') {
-                        mosquito.destroy();
-                        if (mosquito.state === 'alive') this.kills++;
-                        else this.soulsDestroyed++;
-                        this.updateScore();
-                    }
-                }
-            });
-        }
+            }
+        });
     }
 
     checkHandProximity() {
@@ -1183,11 +1110,6 @@ class GameManager {
     }
 
     update(deltaTime) {
-        // Update sound destroy timer
-        if (this.soundDestroyTimer > 0) {
-            this.soundDestroyTimer -= deltaTime;
-        }
-
         // Apply sound-induced shaking to all living mosquitoes
         this.mosquitoes.forEach(mosquito => {
             if (mosquito.state === 'alive') {
