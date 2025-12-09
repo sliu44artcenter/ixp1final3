@@ -18,7 +18,7 @@ const CONFIG = {
     MOSQUITO_SPEED: 2,            // Movement speed (increased for more noticeable movement)
     GHOST_FLOAT_SPEED: 0.5,       // Ghost floating speed
     ALERT_RADIUS: 200,            // Distance at which mosquito starts escaping from hand (increased)
-    ESCAPE_SPEED_MULTIPLIER: 7,   // Speed multiplier during escape (much faster for dramatic escape)
+    ESCAPE_SPEED_MULTIPLIER: 0.5, // Speed multiplier during escape (slower when escaping)
     ESCAPE_DURATION: 800,         // Escape burst duration in milliseconds (increased)
 };
 
@@ -250,17 +250,6 @@ class Mosquito {
         if (this.state === 'destroyed') {
             this.drawParticles(ctx);
             return;
-        }
-
-        // Draw escape mode indicator (red circle)
-        if (this.escapeMode && this.state === 'alive') {
-            ctx.save();
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.6)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size * 1.5, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.restore();
         }
 
         ctx.save();
