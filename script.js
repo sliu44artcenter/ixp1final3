@@ -30,6 +30,10 @@ const CONFIG = {
 const IMAGES = {
     mosquito1: null,
     mosquito2: null,
+    mosquito3: null,
+    mosquito4: null,
+    mosquitofront: null,
+    mosquitobackward: null,
     ghostMosquito1: null,
     ghostMosquito2: null,
     loaded: false
@@ -39,7 +43,7 @@ const IMAGES = {
 function preloadImages() {
     return new Promise((resolve) => {
         let loadedCount = 0;
-        const totalImages = 4;
+        const totalImages = 8;
 
         const checkComplete = () => {
             loadedCount++;
@@ -50,7 +54,7 @@ function preloadImages() {
             }
         };
 
-        // Load mosquito animation frame 1
+        // Load mosquito animation frame 1 (left-facing)
         IMAGES.mosquito1 = new Image();
         IMAGES.mosquito1.onload = checkComplete;
         IMAGES.mosquito1.onerror = () => {
@@ -59,7 +63,7 @@ function preloadImages() {
         };
         IMAGES.mosquito1.src = 'assets/mosquito1.png';
 
-        // Load mosquito animation frame 2
+        // Load mosquito animation frame 2 (left-facing)
         IMAGES.mosquito2 = new Image();
         IMAGES.mosquito2.onload = checkComplete;
         IMAGES.mosquito2.onerror = () => {
@@ -67,6 +71,42 @@ function preloadImages() {
             checkComplete();
         };
         IMAGES.mosquito2.src = 'assets/mosquito2.png';
+
+        // Load mosquito animation frame 3 (right-facing)
+        IMAGES.mosquito3 = new Image();
+        IMAGES.mosquito3.onload = checkComplete;
+        IMAGES.mosquito3.onerror = () => {
+            console.warn('⚠️ Failed to load mosquito3.png, using fallback rendering');
+            checkComplete();
+        };
+        IMAGES.mosquito3.src = 'assets/mosquito3.png';
+
+        // Load mosquito animation frame 4 (right-facing)
+        IMAGES.mosquito4 = new Image();
+        IMAGES.mosquito4.onload = checkComplete;
+        IMAGES.mosquito4.onerror = () => {
+            console.warn('⚠️ Failed to load mosquito4.png, using fallback rendering');
+            checkComplete();
+        };
+        IMAGES.mosquito4.src = 'assets/mosquito4.png';
+
+        // Load mosquito front view
+        IMAGES.mosquitofront = new Image();
+        IMAGES.mosquitofront.onload = checkComplete;
+        IMAGES.mosquitofront.onerror = () => {
+            console.warn('⚠️ Failed to load mosquitofront.png, using fallback rendering');
+            checkComplete();
+        };
+        IMAGES.mosquitofront.src = 'assets/mosquitofront.png';
+
+        // Load mosquito backward view
+        IMAGES.mosquitobackward = new Image();
+        IMAGES.mosquitobackward.onload = checkComplete;
+        IMAGES.mosquitobackward.onerror = () => {
+            console.warn('⚠️ Failed to load mosquitobackward.png, using fallback rendering');
+            checkComplete();
+        };
+        IMAGES.mosquitobackward.src = 'assets/mosquitobackward.png';
 
         // Load ghost mosquito animation frame 1
         IMAGES.ghostMosquito1 = new Image();
@@ -110,6 +150,16 @@ class Mosquito {
             x: Math.random() * 2 - 1,
             y: Math.random() * 2 - 1
         };
+
+        // Facing direction (for choosing left/right sprites)
+        this.facingRight = this.direction.x > 0;
+
+        // Forward/backward movement
+        this.movementMode = 'normal'; // 'normal', 'backward', 'forward'
+        this.movementTimer = 0;
+        this.movementScale = 1.0; // For scaling during forward/backward movement
+        this.minScale = 0.5; // Minimum scale when moving backward
+        this.actionChangeTimer = Math.random() * 2000 + 1000; // Random 1-3 seconds
 
         // Vibration state
         this.vibrating = false;
@@ -165,10 +215,59 @@ class Mosquito {
         // Update wing animation
         this.wingAngle += deltaTime * 0.02;
 
+        // Handle forward/backward movement for alive mosquitoes
+        if (this.state === 'alive') {
+            this.updateMovementMode(deltaTime);
+        }
+
         if (this.state === 'alive') {
             this.updateAlive(deltaTime);
         } else if (this.state === 'ghost') {
             this.updateGhost(deltaTime);
+        }
+    }
+
+    updateMovementMode(deltaTime) {
+        // Random action timer
+        this.actionChangeTimer -= deltaTime;
+        if (this.actionChangeTimer <= 0) {
+            // Choose random action
+            const rand = Math.random();
+            if (rand < 0.7) {
+                // 70% chance: normal movement
+                this.movementMode = 'normal';
+                this.movementScale = 1.0;
+            } else {
+                // 30% chance: start backward movement (which leads to forward)
+                this.movementMode = 'backward';
+                this.movementTimer = 0;
+            }
+            this.actionChangeTimer = Math.random() * 2000 + 1000; // 1-3 seconds
+        }
+
+        // Handle backward to forward transition
+        if (this.movementMode === 'backward') {
+            this.movementTimer += deltaTime;
+            // Shrink over 500ms
+            const progress = Math.min(this.movementTimer / 500, 1);
+            this.movementScale = 1.0 - (1.0 - this.minScale) * progress;
+
+            if (this.movementTimer >= 500) {
+                // Switch to forward movement
+                this.movementMode = 'forward';
+                this.movementTimer = 0;
+            }
+        } else if (this.movementMode === 'forward') {
+            this.movementTimer += deltaTime;
+            // Expand over 500ms
+            const progress = Math.min(this.movementTimer / 500, 1);
+            this.movementScale = this.minScale + (1.0 - this.minScale) * progress;
+
+            if (this.movementTimer >= 500) {
+                // Return to normal
+                this.movementMode = 'normal';
+                this.movementScale = 1.0;
+            }
         }
     }
 
@@ -185,6 +284,11 @@ class Mosquito {
                 // Move in escape direction with increased speed
                 this.x += this.escapeDirection.x * this.speed;
                 this.y += this.escapeDirection.y * this.speed;
+
+                // Update facing direction based on escape direction
+                if (this.escapeDirection.x !== 0) {
+                    this.facingRight = this.escapeDirection.x > 0;
+                }
             }
         } else {
             // Normal random zig-zag movement
@@ -193,6 +297,11 @@ class Mosquito {
                 this.direction.x = Math.random() * 2 - 1;
                 this.direction.y = Math.random() * 2 - 1;
                 this.directionChangeTimer = 0;
+
+                // Update facing direction based on horizontal movement
+                if (this.direction.x !== 0) {
+                    this.facingRight = this.direction.x > 0;
+                }
             }
 
             // Move with normal speed
@@ -272,20 +381,41 @@ class Mosquito {
         if (IMAGES.mosquito1 && IMAGES.mosquito1.complete && IMAGES.mosquito1.naturalWidth > 0 &&
             IMAGES.mosquito2 && IMAGES.mosquito2.complete && IMAGES.mosquito2.naturalWidth > 0) {
 
-            // Alternate between mosquito1 and mosquito2 for animation effect
-            // Use wingAngle to determine which frame to show
-            const useFrame1 = Math.sin(this.wingAngle * 10) > 0;
-            const currentImage = useFrame1 ? IMAGES.mosquito1 : IMAGES.mosquito2;
+            let currentImage;
+            let imageSize = this.size * 2; // Base size
 
-            // Draw animated mosquito image
-            const imageSize = this.size * 2; // Make image larger for visibility
-            ctx.drawImage(
-                currentImage,
-                -imageSize / 2,
-                -imageSize / 2,
-                imageSize,
-                imageSize
-            );
+            // Choose image based on movement mode
+            if (this.movementMode === 'backward') {
+                // Moving backward - use backward image with shrinking
+                currentImage = IMAGES.mosquitobackward;
+                imageSize = imageSize * this.movementScale;
+            } else if (this.movementMode === 'forward') {
+                // Moving forward - use front image with expanding
+                currentImage = IMAGES.mosquitofront;
+                imageSize = imageSize * this.movementScale;
+            } else {
+                // Normal movement - use left/right images based on facing direction
+                const useFrame1 = Math.sin(this.wingAngle * 10) > 0;
+
+                if (this.facingRight) {
+                    // Facing right - use mosquito3 and mosquito4
+                    currentImage = useFrame1 ? IMAGES.mosquito3 : IMAGES.mosquito4;
+                } else {
+                    // Facing left - use mosquito1 and mosquito2
+                    currentImage = useFrame1 ? IMAGES.mosquito1 : IMAGES.mosquito2;
+                }
+            }
+
+            // Draw animated mosquito image with scale
+            if (currentImage && currentImage.complete && currentImage.naturalWidth > 0) {
+                ctx.drawImage(
+                    currentImage,
+                    -imageSize / 2,
+                    -imageSize / 2,
+                    imageSize,
+                    imageSize
+                );
+            }
         } else {
             // Fallback: Programmatic drawing
             // Body
