@@ -18,7 +18,7 @@ const CONFIG = {
     MOSQUITO_SPEED: 2,            // Movement speed (increased for more noticeable movement)
     GHOST_FLOAT_SPEED: 0.5,       // Ghost floating speed
     ALERT_RADIUS: 200,            // Distance at which mosquito starts escaping from hand (increased)
-    ESCAPE_SPEED_MULTIPLIER: 0.5, // Speed multiplier during escape (slower when escaping)
+    ESCAPE_SPEED_MULTIPLIER: 3.5, // Speed multiplier during escape (faster when escaping)
     ESCAPE_DURATION: 800,         // Escape burst duration in milliseconds (increased)
 };
 
@@ -228,24 +228,7 @@ class Mosquito {
     }
 
     updateMovementMode(deltaTime) {
-        // Random action timer
-        this.actionChangeTimer -= deltaTime;
-        if (this.actionChangeTimer <= 0) {
-            // Choose random action
-            const rand = Math.random();
-            if (rand < 0.7) {
-                // 70% chance: normal movement
-                this.movementMode = 'normal';
-                this.movementScale = 1.0;
-            } else {
-                // 30% chance: start backward movement (which leads to forward)
-                this.movementMode = 'backward';
-                this.movementTimer = 0;
-            }
-            this.actionChangeTimer = Math.random() * 2000 + 1000; // 1-3 seconds
-        }
-
-        // Handle backward to forward transition
+        // Handle ongoing backward movement
         if (this.movementMode === 'backward') {
             this.movementTimer += deltaTime;
             // Shrink over 500ms
@@ -253,22 +236,54 @@ class Mosquito {
             this.movementScale = 1.0 - (1.0 - this.minScale) * progress;
 
             if (this.movementTimer >= 500) {
-                // Switch to forward movement
-                this.movementMode = 'forward';
-                this.movementTimer = 0;
+                // Backward complete - randomly choose next action
+                this.chooseRandomAction();
             }
         } else if (this.movementMode === 'forward') {
+            // Handle ongoing forward movement
             this.movementTimer += deltaTime;
             // Expand over 500ms
             const progress = Math.min(this.movementTimer / 500, 1);
             this.movementScale = this.minScale + (1.0 - this.minScale) * progress;
 
             if (this.movementTimer >= 500) {
-                // Return to normal
-                this.movementMode = 'normal';
-                this.movementScale = 1.0;
+                // Forward complete - randomly choose next action
+                this.chooseRandomAction();
+            }
+        } else {
+            // Normal movement - check if it's time to change action
+            this.actionChangeTimer -= deltaTime;
+            if (this.actionChangeTimer <= 0) {
+                this.chooseRandomAction();
             }
         }
+    }
+
+    chooseRandomAction() {
+        const rand = Math.random();
+
+        if (rand < 0.3) {
+            // 30% chance: move backward
+            this.movementMode = 'backward';
+            this.movementTimer = 0;
+        } else if (rand < 0.5) {
+            // 20% chance: move forward (only if not already at min scale)
+            if (this.movementScale >= 0.9) {
+                // Need to go backward first before forward
+                this.movementMode = 'backward';
+                this.movementTimer = 0;
+            } else {
+                this.movementMode = 'forward';
+                this.movementTimer = 0;
+            }
+        } else {
+            // 50% chance: normal lateral movement
+            this.movementMode = 'normal';
+            this.movementScale = 1.0;
+        }
+
+        // Reset action timer for next random choice (if in normal mode)
+        this.actionChangeTimer = Math.random() * 1500 + 500; // 0.5-2 seconds
     }
 
     updateAlive(deltaTime) {
