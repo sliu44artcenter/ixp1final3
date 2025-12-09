@@ -33,7 +33,7 @@ const IMAGES = {
     mosquito3: null,
     mosquito4: null,
     mosquitofront: null,
-    mosquitobackward: null,
+    mosquitoback: null,
     ghostMosquito1: null,
     ghostMosquito2: null,
     loaded: false
@@ -100,13 +100,13 @@ function preloadImages() {
         IMAGES.mosquitofront.src = 'assets/mosquitofront.png';
 
         // Load mosquito backward view
-        IMAGES.mosquitobackward = new Image();
-        IMAGES.mosquitobackward.onload = checkComplete;
-        IMAGES.mosquitobackward.onerror = () => {
-            console.warn('⚠️ Failed to load mosquitobackward.png, using fallback rendering');
+        IMAGES.mosquitoback = new Image();
+        IMAGES.mosquitoback.onload = checkComplete;
+        IMAGES.mosquitoback.onerror = () => {
+            console.warn('⚠️ Failed to load mosquitoback.png, using fallback rendering');
             checkComplete();
         };
-        IMAGES.mosquitobackward.src = 'assets/mosquitobackward.png';
+        IMAGES.mosquitoback.src = 'assets/mosquitoback.png';
 
         // Load ghost mosquito animation frame 1
         IMAGES.ghostMosquito1 = new Image();
@@ -387,7 +387,7 @@ class Mosquito {
             // Choose image based on movement mode
             if (this.movementMode === 'backward') {
                 // Moving backward - use backward image with shrinking
-                currentImage = IMAGES.mosquitobackward;
+                currentImage = IMAGES.mosquitoback;
                 imageSize = imageSize * this.movementScale;
             } else if (this.movementMode === 'forward') {
                 // Moving forward - use front image with expanding
