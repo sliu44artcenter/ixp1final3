@@ -827,7 +827,13 @@ class GameManager {
     }
 
     finishScan() {
-        // Stop face mesh
+        // Stop camera first
+        if (this.camera) {
+            this.camera.stop();
+            this.camera = null;
+        }
+
+        // Stop face mesh and clean up WebGL resources
         if (this.faceMesh) {
             this.faceMesh.close();
             this.faceMesh = null;
@@ -840,7 +846,7 @@ class GameManager {
         this.state = 'PLAYING';
         this.updateUI();
 
-        // Initialize hand tracking
+        // Initialize hand tracking (which will create a new camera)
         this.initHandTracking();
 
         // Initialize audio
@@ -881,6 +887,19 @@ class GameManager {
         });
 
         this.hands.onResults((results) => this.onHandResults(results));
+
+        // Create new camera instance for hand tracking
+        this.camera = new Camera(this.video, {
+            onFrame: async () => {
+                if (this.hands) {
+                    await this.hands.send({ image: this.video });
+                }
+            },
+            width: 1280,
+            height: 720
+        });
+
+        this.camera.start();
     }
 
     onHandResults(results) {
@@ -1300,15 +1319,31 @@ class GameManager {
     }
 
     restart() {
-        // Stop everything
+        // Stop everything and clean up WebGL resources
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
         }
+
+        // Stop camera first
+        if (this.camera) {
+            this.camera.stop();
+            this.camera = null;
+        }
+
+        // Clean up MediaPipe instances
+        if (this.faceMesh) {
+            this.faceMesh.close();
+            this.faceMesh = null;
+        }
         if (this.hands) {
             this.hands.close();
+            this.hands = null;
         }
+
+        // Clean up audio
         if (this.audioContext) {
             this.audioContext.close();
+            this.audioContext = null;
         }
 
         // Reset state
@@ -1316,6 +1351,9 @@ class GameManager {
         this.mosquitoes = [];
         this.kills = 0;
         this.soulsDestroyed = 0;
+        this.leftHand = null;
+        this.rightHand = null;
+        this.isSoundActive = false;
         this.updateScore();
         this.updateUI();
 
