@@ -589,25 +589,42 @@ class Mosquito {
     startEscape(handX, handY) {
         if (this.state !== 'alive') return;
 
-        // Calculate direction away from hand
-        const dx = this.x - handX;
-        const dy = this.y - handY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        // Randomly choose escape strategy
+        const escapeStrategy = Math.random();
 
-        if (distance > 0) {
-            // Normalize direction and set escape direction
-            this.escapeDirection.x = (dx / distance);
-            this.escapeDirection.y = (dy / distance);
+        if (escapeStrategy < 0.4) {
+            // 40% chance: Lateral escape (move away from hand horizontally)
+            const dx = this.x - handX;
+            const dy = this.y - handY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 0) {
+                // Normalize direction and set escape direction
+                this.escapeDirection.x = (dx / distance);
+                this.escapeDirection.y = (dy / distance);
+            } else {
+                // If on exact same position, escape in random direction
+                this.escapeDirection.x = Math.random() * 2 - 1;
+                this.escapeDirection.y = Math.random() * 2 - 1;
+            }
+
+            // Enter lateral escape mode
+            this.escapeMode = true;
+            this.escapeDuration = CONFIG.ESCAPE_DURATION;
+            this.speed = CONFIG.MOSQUITO_SPEED * CONFIG.ESCAPE_SPEED_MULTIPLIER;
+        } else if (escapeStrategy < 0.7) {
+            // 30% chance: Escape backward (move into distance)
+            // Cancel current depth movement and start backward escape
+            this.movementMode = 'backward';
+            this.movementTimer = 0;
+            this.holdDuration = Math.random() * 1500 + 1000; // Hold 1-2.5 seconds after escape
         } else {
-            // If on exact same position, escape in random direction
-            this.escapeDirection.x = Math.random() * 2 - 1;
-            this.escapeDirection.y = Math.random() * 2 - 1;
+            // 30% chance: Escape forward (move toward viewer)
+            // Cancel current depth movement and start forward escape
+            this.movementMode = 'forward';
+            this.movementTimer = 0;
+            this.holdDuration = Math.random() * 1500 + 1000; // Hold 1-2.5 seconds after escape
         }
-
-        // Enter escape mode
-        this.escapeMode = true;
-        this.escapeDuration = CONFIG.ESCAPE_DURATION;
-        this.speed = CONFIG.MOSQUITO_SPEED * CONFIG.ESCAPE_SPEED_MULTIPLIER;
     }
 
     // Convert to ghost
