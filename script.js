@@ -999,8 +999,10 @@ class GameManager {
 
                 // Get index finger tip (landmark 8)
                 const fingerTip = landmarks[8];
+
+                // Mirror the X coordinate to match the flipped video display
                 const handCenter = {
-                    x: fingerTip.x * this.handCanvas.width,
+                    x: (1 - fingerTip.x) * this.handCanvas.width,
                     y: fingerTip.y * this.handCanvas.height
                 };
 
@@ -1097,16 +1099,16 @@ class GameManager {
         this.handCtx.strokeStyle = handedness === 'Left' ? '#00ff00' : '#0000ff';
         this.handCtx.lineWidth = 2;
 
-        // Draw landmarks
+        // Draw landmarks (mirror X coordinate)
         landmarks.forEach(landmark => {
-            const x = landmark.x * this.handCanvas.width;
+            const x = (1 - landmark.x) * this.handCanvas.width;
             const y = landmark.y * this.handCanvas.height;
             this.handCtx.beginPath();
             this.handCtx.arc(x, y, 5, 0, Math.PI * 2);
             this.handCtx.fill();
         });
 
-        // Draw connections (simplified)
+        // Draw connections (simplified, mirror X coordinate)
         const connections = [
             [0, 1], [1, 2], [2, 3], [3, 4],  // Thumb
             [0, 5], [5, 6], [6, 7], [7, 8],  // Index
@@ -1120,11 +1122,11 @@ class GameManager {
             const endPoint = landmarks[end];
             this.handCtx.beginPath();
             this.handCtx.moveTo(
-                startPoint.x * this.handCanvas.width,
+                (1 - startPoint.x) * this.handCanvas.width,
                 startPoint.y * this.handCanvas.height
             );
             this.handCtx.lineTo(
-                endPoint.x * this.handCanvas.width,
+                (1 - endPoint.x) * this.handCanvas.width,
                 endPoint.y * this.handCanvas.height
             );
             this.handCtx.stroke();
