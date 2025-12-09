@@ -154,12 +154,18 @@ class Mosquito {
         // Facing direction (for choosing left/right sprites)
         this.facingRight = this.direction.x > 0;
 
-        // Forward/backward movement
-        this.movementMode = 'normal'; // 'normal', 'backward', 'forward'
+        // Forward/backward movement with actual spatial movement
+        this.movementMode = 'normal'; // 'normal', 'backward', 'forward', 'holding'
         this.movementTimer = 0;
         this.movementScale = 1.0; // For scaling during forward/backward movement
         this.minScale = 0.5; // Minimum scale when moving backward
-        this.actionChangeTimer = Math.random() * 2000 + 1000; // Random 1-3 seconds
+        this.maxScale = 1.8; // Maximum scale when moving forward
+        this.actionChangeTimer = Math.random() * 1500 + 500;
+        this.holdDuration = 0; // How long to hold at forward/backward position
+
+        // Spatial position offset for forward/backward movement
+        this.spatialOffsetX = 0;
+        this.spatialOffsetY = 0;
 
         // Vibration state
         this.vibrating = false;
@@ -231,24 +237,62 @@ class Mosquito {
         // Handle ongoing backward movement
         if (this.movementMode === 'backward') {
             this.movementTimer += deltaTime;
-            // Shrink over 500ms
-            const progress = Math.min(this.movementTimer / 500, 1);
+            // Shrink and move away over 800ms
+            const progress = Math.min(this.movementTimer / 800, 1);
             this.movementScale = 1.0 - (1.0 - this.minScale) * progress;
 
-            if (this.movementTimer >= 500) {
-                // Backward complete - randomly choose next action
-                this.chooseRandomAction();
+            // Move mosquito away from center (smaller = further)
+            const centerX = this.canvasWidth / 2;
+            const centerY = this.canvasHeight / 2;
+            const dirFromCenter = {
+                x: this.x - centerX,
+                y: this.y - centerY
+            };
+            const dist = Math.sqrt(dirFromCenter.x * dirFromCenter.x + dirFromCenter.y * dirFromCenter.y);
+            if (dist > 0) {
+                this.spatialOffsetX = -(dirFromCenter.x / dist) * 80 * progress;
+                this.spatialOffsetY = -(dirFromCenter.y / dist) * 80 * progress;
+            }
+
+            if (this.movementTimer >= 800) {
+                // Backward complete - hold this position
+                this.movementMode = 'holding';
+                this.holdDuration = Math.random() * 2000 + 1500; // Hold 1.5-3.5 seconds
+                this.movementTimer = 0;
             }
         } else if (this.movementMode === 'forward') {
             // Handle ongoing forward movement
             this.movementTimer += deltaTime;
-            // Expand over 500ms
-            const progress = Math.min(this.movementTimer / 500, 1);
-            this.movementScale = this.minScale + (1.0 - this.minScale) * progress;
+            // Expand and move toward viewer over 800ms
+            const progress = Math.min(this.movementTimer / 800, 1);
+            this.movementScale = this.minScale + (this.maxScale - this.minScale) * progress;
 
-            if (this.movementTimer >= 500) {
-                // Forward complete - randomly choose next action
-                this.chooseRandomAction();
+            // Move mosquito toward center (bigger = closer)
+            const centerX = this.canvasWidth / 2;
+            const centerY = this.canvasHeight / 2;
+            const dirFromCenter = {
+                x: this.x - centerX,
+                y: this.y - centerY
+            };
+            const dist = Math.sqrt(dirFromCenter.x * dirFromCenter.x + dirFromCenter.y * dirFromCenter.y);
+            if (dist > 0) {
+                const maxOffset = 80;
+                this.spatialOffsetX = (dirFromCenter.x / dist) * maxOffset * (1 - progress);
+                this.spatialOffsetY = (dirFromCenter.y / dist) * maxOffset * (1 - progress);
+            }
+
+            if (this.movementTimer >= 800) {
+                // Forward complete - hold this position
+                this.movementMode = 'holding';
+                this.holdDuration = Math.random() * 2000 + 1500; // Hold 1.5-3.5 seconds
+                this.movementTimer = 0;
+            }
+        } else if (this.movementMode === 'holding') {
+            // Hold at current depth
+            this.holdDuration -= deltaTime;
+            if (this.holdDuration <= 0) {
+                // Return to normal
+                this.returnToNormal();
             }
         } else {
             // Normal movement - check if it's time to change action
@@ -259,31 +303,29 @@ class Mosquito {
         }
     }
 
+    returnToNormal() {
+        this.movementMode = 'normal';
+        this.movementScale = 1.0;
+        this.spatialOffsetX = 0;
+        this.spatialOffsetY = 0;
+        this.actionChangeTimer = Math.random() * 1500 + 500;
+    }
+
     chooseRandomAction() {
         const rand = Math.random();
 
-        if (rand < 0.3) {
-            // 30% chance: move backward
+        if (rand < 0.35) {
+            // 35% chance: move backward
             this.movementMode = 'backward';
             this.movementTimer = 0;
-        } else if (rand < 0.5) {
-            // 20% chance: move forward (only if not already at min scale)
-            if (this.movementScale >= 0.9) {
-                // Need to go backward first before forward
-                this.movementMode = 'backward';
-                this.movementTimer = 0;
-            } else {
-                this.movementMode = 'forward';
-                this.movementTimer = 0;
-            }
+        } else if (rand < 0.65) {
+            // 30% chance: move forward
+            this.movementMode = 'forward';
+            this.movementTimer = 0;
         } else {
-            // 50% chance: normal lateral movement
-            this.movementMode = 'normal';
-            this.movementScale = 1.0;
+            // 35% chance: normal lateral movement
+            this.returnToNormal();
         }
-
-        // Reset action timer for next random choice (if in normal mode)
-        this.actionChangeTimer = Math.random() * 1500 + 500; // 0.5-2 seconds
     }
 
     updateAlive(deltaTime) {
@@ -306,7 +348,9 @@ class Mosquito {
                 }
             }
         } else {
-            // Normal random zig-zag movement
+            // Normal random zig-zag movement (reduced when holding depth position)
+            const speedMultiplier = this.movementMode === 'holding' ? 0.4 : 1.0;
+
             this.directionChangeTimer += deltaTime;
             if (this.directionChangeTimer > 1000) {
                 this.direction.x = Math.random() * 2 - 1;
@@ -319,9 +363,9 @@ class Mosquito {
                 }
             }
 
-            // Move with normal speed
-            this.x += this.direction.x * this.speed;
-            this.y += this.direction.y * this.speed;
+            // Move with normal speed (slower when holding depth)
+            this.x += this.direction.x * this.speed * speedMultiplier;
+            this.y += this.direction.y * this.speed * speedMultiplier;
         }
 
         // Bounce off edges
@@ -378,8 +422,8 @@ class Mosquito {
 
         ctx.save();
         ctx.translate(
-            this.x + this.vibrationOffset.x + this.soundShakeOffset.x,
-            this.y + this.vibrationOffset.y + this.soundShakeOffset.y
+            this.x + this.vibrationOffset.x + this.soundShakeOffset.x + this.spatialOffsetX,
+            this.y + this.vibrationOffset.y + this.soundShakeOffset.y + this.spatialOffsetY
         );
 
         if (this.state === 'alive') {
@@ -639,10 +683,12 @@ class Mosquito {
         return this.state === 'destroyed' && this.particles.length === 0;
     }
 
-    // Check if point is near mosquito
+    // Check if point is near mosquito (using visual position with spatial offset)
     isNear(x, y, radius) {
-        const dx = this.x - x;
-        const dy = this.y - y;
+        const visualX = this.x + this.spatialOffsetX;
+        const visualY = this.y + this.spatialOffsetY;
+        const dx = visualX - x;
+        const dy = visualY - y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         return distance < radius;
     }
@@ -1117,16 +1163,19 @@ class GameManager {
         this.mosquitoes.forEach(mosquito => {
             if (mosquito.state !== 'alive') return;
 
+            // Use visual position (with spatial offset) for proximity detection
+            const visualPos = {
+                x: mosquito.x + mosquito.spatialOffsetX,
+                y: mosquito.y + mosquito.spatialOffsetY
+            };
+
             // Find nearest hand
             let nearestHandDistance = Infinity;
             let nearestHandX = 0;
             let nearestHandY = 0;
 
             if (this.leftHand) {
-                const distToLeft = this.calculateDistance(
-                    { x: mosquito.x, y: mosquito.y },
-                    this.leftHand
-                );
+                const distToLeft = this.calculateDistance(visualPos, this.leftHand);
                 if (distToLeft < nearestHandDistance) {
                     nearestHandDistance = distToLeft;
                     nearestHandX = this.leftHand.x;
@@ -1135,10 +1184,7 @@ class GameManager {
             }
 
             if (this.rightHand) {
-                const distToRight = this.calculateDistance(
-                    { x: mosquito.x, y: mosquito.y },
-                    this.rightHand
-                );
+                const distToRight = this.calculateDistance(visualPos, this.rightHand);
                 if (distToRight < nearestHandDistance) {
                     nearestHandDistance = distToRight;
                     nearestHandX = this.rightHand.x;
