@@ -18,7 +18,7 @@ const CONFIG = {
     MOSQUITO_SPEED: 2,            // Movement speed (increased for more noticeable movement)
     GHOST_FLOAT_SPEED: 0.5,       // Ghost floating speed
     ALERT_RADIUS: 200,            // Distance at which mosquito starts escaping from hand (increased)
-    ESCAPE_SPEED_MULTIPLIER: 3.5, // Speed multiplier during escape (faster when escaping)
+    ESCAPE_SPEED_MULTIPLIER: 6,   // Speed multiplier during escape (much faster fleeing)
     ESCAPE_DURATION: 800,         // Escape burst duration in milliseconds (increased)
 };
 
