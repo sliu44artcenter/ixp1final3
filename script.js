@@ -734,6 +734,7 @@ class GameManager {
         this.leftHand = null;
         this.rightHand = null;
         this.handOverlapPoint = null;
+        this.isProcessingFrame = false;  // Flag to prevent frame processing blocking
 
         // MediaPipe
         this.faceMesh = null;
@@ -969,8 +970,18 @@ class GameManager {
         // Create new camera instance for hand tracking
         this.camera = new Camera(this.video, {
             onFrame: async () => {
-                if (this.hands) {
+                // Skip frame if still processing previous one
+                if (this.isProcessingFrame || !this.hands) {
+                    return;
+                }
+
+                this.isProcessingFrame = true;
+                try {
                     await this.hands.send({ image: this.video });
+                } catch (error) {
+                    console.error('Hand tracking error:', error);
+                } finally {
+                    this.isProcessingFrame = false;
                 }
             },
             width: 1280,
@@ -1434,6 +1445,7 @@ class GameManager {
         this.leftHand = null;
         this.rightHand = null;
         this.isSoundActive = false;
+        this.isProcessingFrame = false;  // Reset frame processing flag
         this.updateScore();
         this.updateUI();
 
