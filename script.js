@@ -1017,6 +1017,14 @@ class GameManager {
     }
 
     async initHandTracking() {
+        // Ensure video is ready
+        if (!this.video.srcObject) {
+            console.log('Video not ready, reinitializing camera...');
+            await this.initializeCamera();
+        }
+
+        console.log('Initializing hand tracking...');
+
         this.hands = new Hands({
             locateFile: (file) => {
                 return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
@@ -1053,7 +1061,9 @@ class GameManager {
             height: 720
         });
 
+        console.log('Starting hand tracking camera...');
         this.camera.start();
+        console.log('Hand tracking initialized successfully');
     }
 
     onHandResults(results) {
@@ -1065,6 +1075,7 @@ class GameManager {
         this.handOverlapPoint = null;
 
         if (results.multiHandLandmarks && results.multiHandedness) {
+            console.log('Hand detected:', results.multiHandLandmarks.length);
             document.getElementById('hands-count').textContent = results.multiHandLandmarks.length;
 
             results.multiHandLandmarks.forEach((landmarks, index) => {
