@@ -1067,6 +1067,8 @@ class GameManager {
     }
 
     onHandResults(results) {
+        console.log('onHandResults called, state:', this.state);
+
         // Clear hand canvas
         this.handCtx.clearRect(0, 0, this.handCanvas.width, this.handCanvas.height);
 
@@ -1075,11 +1077,13 @@ class GameManager {
         this.handOverlapPoint = null;
 
         if (results.multiHandLandmarks && results.multiHandedness) {
-            console.log('Hand detected:', results.multiHandLandmarks.length);
+            console.log('Hand detected:', results.multiHandLandmarks.length, 'Canvas size:', this.handCanvas.width, 'x', this.handCanvas.height);
             document.getElementById('hands-count').textContent = results.multiHandLandmarks.length;
 
             results.multiHandLandmarks.forEach((landmarks, index) => {
                 const handedness = results.multiHandedness[index].label;
+
+                console.log('Drawing hand:', handedness);
 
                 // Draw hand skeleton
                 this.drawHand(landmarks, handedness);
@@ -1092,6 +1096,8 @@ class GameManager {
                     x: (1 - fingerTip.x) * this.handCanvas.width,
                     y: fingerTip.y * this.handCanvas.height
                 };
+
+                console.log('Hand position:', handCenter);
 
                 if (handedness === 'Left') {
                     this.leftHand = handCenter;
@@ -1181,15 +1187,18 @@ class GameManager {
     }
 
     drawHand(landmarks, handedness) {
+        console.log('drawHand called for:', handedness, 'with', landmarks.length, 'landmarks');
+
         // Draw hand landmarks and connections
         this.handCtx.fillStyle = handedness === 'Left' ? '#00ff00' : '#0000ff';
         this.handCtx.strokeStyle = handedness === 'Left' ? '#00ff00' : '#0000ff';
         this.handCtx.lineWidth = 2;
 
         // Draw landmarks (mirror X coordinate)
-        landmarks.forEach(landmark => {
+        landmarks.forEach((landmark, i) => {
             const x = (1 - landmark.x) * this.handCanvas.width;
             const y = landmark.y * this.handCanvas.height;
+            if (i === 0) console.log('Drawing first landmark at:', x, y);
             this.handCtx.beginPath();
             this.handCtx.arc(x, y, 5, 0, Math.PI * 2);
             this.handCtx.fill();
