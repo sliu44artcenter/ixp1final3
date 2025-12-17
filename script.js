@@ -769,31 +769,21 @@ class GameManager {
         document.getElementById('start-scan-btn').addEventListener('click', () => this.startEyeScan());
         document.getElementById('restart-btn').addEventListener('click', () => this.restart());
 
-        // Setup play icon click handler
-        const playIcon = document.getElementById('play-icon');
+        // Setup title image click handler to start game directly
+        const titleImage = document.getElementById('title-image');
         const titleScreen = document.getElementById('title-screen');
-        const instructionsScreen = document.getElementById('instructions-screen');
 
-        if (playIcon && titleScreen && instructionsScreen) {
-            playIcon.addEventListener('click', async () => {
+        if (titleImage && titleScreen) {
+            // Make title image clickable with cursor change
+            titleImage.style.cursor = 'pointer';
+
+            titleImage.addEventListener('click', async () => {
                 // Hide title screen with fade out
                 titleScreen.classList.add('hidden');
 
-                // Wait for fade out animation, then show instructions
-                setTimeout(() => {
-                    titleScreen.style.display = 'none';
-                    instructionsScreen.style.display = 'flex';
-                }, 500);
-            });
-
-            // Setup instructions screen click handler
-            instructionsScreen.addEventListener('click', () => {
-                // Hide instructions screen with fade out
-                instructionsScreen.classList.add('hidden');
-
                 // Wait for fade out animation, then start game
                 setTimeout(() => {
-                    instructionsScreen.style.display = 'none';
+                    titleScreen.style.display = 'none';
                     this.startEyeScan();
                 }, 500);
             });
