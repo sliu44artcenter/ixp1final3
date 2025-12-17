@@ -849,6 +849,14 @@ class GameManager {
             });
         }
 
+        // Setup play again button click handler
+        const playAgainButton = document.getElementById('play-again-button');
+        if (playAgainButton) {
+            playAgainButton.addEventListener('click', () => {
+                this.returnToTitle();
+            });
+        }
+
         await this.initializeCamera();
         this.updateUI();
     }
@@ -883,6 +891,11 @@ class GameManager {
         this.scannedPositions = [];
         this.updateUI();
 
+        // Show eye tracking progress bar
+        const progressScreen = document.getElementById('eye-tracking-progress');
+        const progressBar = document.getElementById('progress-bar-fill');
+        progressScreen.style.display = 'flex';
+
         // Initialize FaceMesh for eye tracking
         await this.initFaceMesh();
 
@@ -892,11 +905,13 @@ class GameManager {
             const progress = Math.min(100, (elapsed / CONFIG.EYE_SCAN_DURATION) * 100);
             this.scanProgress = progress;
 
-            document.getElementById('mode-text').textContent =
-                `Eye Scanning... ${progress.toFixed(0)}% - Move your eyes around the screen!`;
+            // Update progress bar
+            progressBar.style.width = progress + '%';
 
             if (elapsed >= CONFIG.EYE_SCAN_DURATION) {
                 clearInterval(scanInterval);
+                // Hide progress bar
+                progressScreen.style.display = 'none';
                 this.finishScan();
             }
         }, 100);
@@ -1415,11 +1430,9 @@ class GameManager {
         this.mosquitoes = this.mosquitoes.filter(m => !m.isFullyDestroyed());
 
         // Check win condition
-        if (this.mosquitoes.length === 0) {
+        if (this.mosquitoes.length === 0 && this.state !== 'WON') {
             this.state = 'WON';
-            this.updateUI();
-            document.getElementById('mode-text').textContent =
-                '🎉 Victory! All mosquitoes eliminated!';
+            this.showWinScreen();
         }
     }
 
@@ -1519,6 +1532,84 @@ class GameManager {
         document.getElementById('frequency-display').textContent = '0 Hz';
         document.getElementById('hands-count').textContent = '0';
         document.getElementById('hand-distance').textContent = '-';
+
+        // Restart camera
+        this.initializeCamera();
+    }
+
+    showWinScreen() {
+        // Show win screen
+        const winScreen = document.getElementById('win-screen');
+        winScreen.style.display = 'flex';
+        winScreen.classList.remove('hidden');
+
+        // Stop game loop
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+        }
+    }
+
+    returnToTitle() {
+        // Stop everything and clean up WebGL resources
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+        }
+
+        // Stop camera first
+        if (this.camera) {
+            this.camera.stop();
+            this.camera = null;
+        }
+
+        // Clean up MediaPipe instances
+        if (this.faceMesh) {
+            this.faceMesh.close();
+            this.faceMesh = null;
+        }
+        if (this.hands) {
+            this.hands.close();
+            this.hands = null;
+        }
+
+        // Clean up audio
+        if (this.audioContext) {
+            this.audioContext.close();
+            this.audioContext = null;
+        }
+
+        // Reset state
+        this.state = 'WAITING';
+        this.mosquitoes = [];
+        this.kills = 0;
+        this.soulsDestroyed = 0;
+        this.leftHand = null;
+        this.rightHand = null;
+        this.isSoundActive = false;
+        this.isProcessingFrame = false;
+        this.updateScore();
+        this.updateUI();
+
+        // Clear canvases
+        this.gameCtx.clearRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
+        this.handCtx.clearRect(0, 0, this.handCanvas.width, this.handCanvas.height);
+
+        // Hide win screen
+        const winScreen = document.getElementById('win-screen');
+        winScreen.classList.add('hidden');
+        setTimeout(() => {
+            winScreen.style.display = 'none';
+        }, 500);
+
+        // Reset progress bar
+        const progressBar = document.getElementById('progress-bar-fill');
+        if (progressBar) {
+            progressBar.style.width = '0%';
+        }
+
+        // Show title screen
+        const titleScreen = document.getElementById('title-screen');
+        titleScreen.style.display = 'flex';
+        titleScreen.classList.remove('hidden');
 
         // Restart camera
         this.initializeCamera();

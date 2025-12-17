@@ -63,6 +63,101 @@ body {
     }
 }
 
+/* Eye Tracking Progress Bar */
+#eye-tracking-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('assets/hotel.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+#progress-bar-container {
+    width: 60%;
+    max-width: 500px;
+    height: 30px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 3px solid white;
+    border-radius: 15px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+#progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    transition: width 0.1s ease;
+}
+
+#progress-text {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Win Screen */
+#win-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url('assets/hotel.jpg');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1002;
+    transition: opacity 0.5s ease-in;
+}
+
+#win-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#win-screen-image {
+    max-width: 80%;
+    max-height: 50vh;
+    object-fit: contain;
+    margin-bottom: 40px;
+    animation: victoryPulse 2s ease-in-out infinite;
+}
+
+@keyframes victoryPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+#play-again-button {
+    max-width: 300px;
+    max-height: 150px;
+    cursor: pointer;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    object-fit: contain;
+}
+
+#play-again-button:hover {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
 #game-container {
     width: 100vw;
     height: 100vh;
