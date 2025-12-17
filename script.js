@@ -938,9 +938,6 @@ class GameManager {
                 if (this.faceMesh) {
                     await this.faceMesh.send({ image: this.video });
                 }
-                if (this.hands) {
-                    await this.hands.send({ image: this.video });
-                }
             },
             width: 1280,
             height: 720
@@ -970,7 +967,7 @@ class GameManager {
         }
     }
 
-    finishScan() {
+    async finishScan() {
         // Stop camera first
         if (this.camera) {
             this.camera.stop();
@@ -983,6 +980,9 @@ class GameManager {
             this.faceMesh = null;
         }
 
+        // Wait a bit for cleanup to complete
+        await new Promise(resolve => setTimeout(resolve, 200));
+
         // Spawn mosquitoes
         this.spawnMosquitoes();
 
@@ -991,7 +991,7 @@ class GameManager {
         this.updateUI();
 
         // Initialize hand tracking (which will create a new camera)
-        this.initHandTracking();
+        await this.initHandTracking();
 
         // Initialize audio
         this.initAudio();
