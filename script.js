@@ -176,6 +176,12 @@ class Mosquito {
         this.soundShaking = false;
         this.soundShakeOffset = { x: 0, y: 0 };
 
+        // Panic mode (triggered by high frequency sound > 400 Hz)
+        this.panicMode = false;
+        this.panicDuration = 0;
+        this.panicSpeed = CONFIG.MOSQUITO_SPEED * 8; // 8x faster during panic
+        this.panicDirection = { x: 0, y: 0 };
+
         // Escape behavior
         this.escapeMode = false;
         this.escapeDuration = 0;
@@ -329,8 +335,40 @@ class Mosquito {
     }
 
     updateAlive(deltaTime) {
+        // Handle panic mode (priority over all other movements)
+        if (this.panicMode) {
+            this.panicDuration -= deltaTime;
+
+            if (this.panicDuration <= 0) {
+                // Exit panic mode and return to normal movement
+                this.panicMode = false;
+            } else {
+                // Move in random panic direction with very high speed
+                this.x += this.panicDirection.x * this.panicSpeed;
+                this.y += this.panicDirection.y * this.panicSpeed;
+
+                // Change panic direction frequently for erratic movement
+                if (Math.random() < 0.1) { // 10% chance per frame to change direction
+                    this.panicDirection.x = Math.random() * 2 - 1;
+                    this.panicDirection.y = Math.random() * 2 - 1;
+
+                    // Normalize direction
+                    const length = Math.sqrt(this.panicDirection.x * this.panicDirection.x +
+                                           this.panicDirection.y * this.panicDirection.y);
+                    if (length > 0) {
+                        this.panicDirection.x /= length;
+                        this.panicDirection.y /= length;
+                    }
+
+                    // Update facing direction
+                    if (this.panicDirection.x !== 0) {
+                        this.facingRight = this.panicDirection.x > 0;
+                    }
+                }
+            }
+        }
         // Handle escape mode
-        if (this.escapeMode) {
+        else if (this.escapeMode) {
             this.escapeDuration -= deltaTime;
 
             if (this.escapeDuration <= 0) {
@@ -625,6 +663,28 @@ class Mosquito {
             this.movementTimer = 0;
             this.holdDuration = Math.random() * 1500 + 1000; // Hold 1-2.5 seconds after escape
         }
+    }
+
+    // Start panic mode (triggered by high frequency sound > 400 Hz)
+    startPanic() {
+        if (this.state !== 'alive') return;
+        if (this.panicMode) return; // Already in panic mode
+
+        // Set random panic direction
+        this.panicDirection.x = Math.random() * 2 - 1;
+        this.panicDirection.y = Math.random() * 2 - 1;
+
+        // Normalize direction
+        const length = Math.sqrt(this.panicDirection.x * this.panicDirection.x +
+                               this.panicDirection.y * this.panicDirection.y);
+        if (length > 0) {
+            this.panicDirection.x /= length;
+            this.panicDirection.y /= length;
+        }
+
+        // Enter panic mode for 2 seconds
+        this.panicMode = true;
+        this.panicDuration = 2000; // 2 seconds
     }
 
     // Convert to ghost
@@ -1306,6 +1366,15 @@ class GameManager {
             this.isSoundActive = true;
         } else {
             this.isSoundActive = false;
+        }
+
+        // Trigger panic mode if frequency goes above 400 Hz
+        if (frequency >= 400 && maxValue > CONFIG.SOUND_THRESHOLD) {
+            this.mosquitoes.forEach(mosquito => {
+                if (mosquito.state === 'alive' && !mosquito.panicMode) {
+                    mosquito.startPanic();
+                }
+            });
         }
 
         requestAnimationFrame(() => this.detectFrequency());
