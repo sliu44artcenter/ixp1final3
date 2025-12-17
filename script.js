@@ -1383,8 +1383,8 @@ class GameManager {
             this.isSoundActive = false;
         }
 
-        // Trigger panic mode if frequency goes above 400 Hz
-        if (frequency >= 400 && maxValue > CONFIG.SOUND_THRESHOLD) {
+        // Trigger panic mode if frequency goes above 900 Hz
+        if (frequency >= 900 && maxValue > CONFIG.SOUND_THRESHOLD) {
             this.mosquitoes.forEach(mosquito => {
                 if (mosquito.state === 'alive' && !mosquito.panicMode) {
                     mosquito.startPanic();
